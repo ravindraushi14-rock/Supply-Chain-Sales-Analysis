@@ -1,0 +1,69 @@
+-- DataCo Supply Chain & Sales Analytics
+-- Power BI / DAX reference
+-- Exact/recoverable formulas are taken from the saved project records.
+-- Reference implementations are explicitly labeled in the project documentation.
+
+Sales PY =
+CALCULATE(
+    SUM('public dataco_raw'[Sales]),
+    SAMEPERIODLASTYEAR('DateTable'[Date])
+)
+
+Sales YoY % =
+DIVIDE(
+    SUM('public dataco_raw'[Sales]) - [Sales PY],
+    [Sales PY]
+)
+
+Profit PY =
+CALCULATE(
+    SUM('public dataco_raw'[Order Profit Per Order]),
+    SAMEPERIODLASTYEAR('DateTable'[Date])
+)
+
+Profit YoY % =
+DIVIDE(
+    SUM('public dataco_raw'[Order Profit Per Order]) - [Profit PY],
+    [Profit PY]
+)
+
+Sales per Customer =
+DIVIDE(
+    [Total Sales],
+    [Total Customers]
+)
+
+Customers PY =
+CALCULATE(
+    DISTINCTCOUNT('public dataco_raw'[Customer Id]),
+    SAMEPERIODLASTYEAR('DateTable'[Date])
+)
+
+Total Sales = SUM('public dataco_raw'[Sales])
+
+Total Profit = SUM('public dataco_raw'[Order Profit Per Order])
+
+Total Orders = DISTINCTCOUNT('public dataco_raw'[Order Id])
+
+Total Customers = DISTINCTCOUNT('public dataco_raw'[Customer Id])
+
+Average Order Value =
+DIVIDE(
+    [Total Sales],
+    [Total Orders]
+)
+
+Profit Margin % =
+DIVIDE(
+    [Total Profit],
+    [Total Sales]
+)
+
+Late Delivery % =
+AVERAGE('public dataco_raw'[Late_delivery_risk])
+
+Profit Margin YoY % =
+DIVIDE(
+    [Profit Margin CY] - [Profit Margin PY],
+    [Profit Margin PY]
+)
