@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DataCo Supply Chain Analytics · Ravindra Ushi</title>
+<meta name="description" content="Interactive supply chain and sales dashboard: delivery SLA, profitability, products and customers. Built with Python, PostgreSQL and Power BI.">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+  :root {
+    --bg: #0B1626; --panel: #132238; --panel2: #182A44; --line: #233A5A;
+    --fg: #E8EEF6; --muted: #93A6BE; --dim: #5F7591;
+    --blue: #3D8BFF; --teal: #1FC8A7; --amber: #F5A524; --red: #F2545B;
+    --purple: #9C7CF4; --green: #34D17C; --pink: #EE6FB0; --sky: #4FC3F7;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); font-family: "Segoe UI", system-ui, -apple-system, sans-serif; }
+  body { padding: 10px 16px 14px; min-height: 100vh; }
+  .top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .logo { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, var(--blue), var(--teal)); display: grid; place-items: center; font-weight: 800; color: #fff; font-size: 15px; }
+  .brand h1 { font-size: 18px; margin: 0; font-weight: 700; letter-spacing: .2px; }
+  .brand p { margin: 0; font-size: 11.5px; color: var(--muted); }
+  .scope { margin-left: auto; font-size: 12px; color: var(--muted); text-align: right; }
+  .scope b { color: var(--fg); }
+  .bar { display: flex; flex-wrap: wrap; gap: 6px 7px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; margin-bottom: 9px; position: sticky; top: 0; z-index: 5; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { font: inherit; font-size: 11.5px; background: transparent; color: var(--muted); border: 0; border-right: 1px solid var(--line); padding: 4px 8px; cursor: pointer; }
+  .seg button:last-child { border-right: 0; }
+  .seg button:hover { color: var(--fg); }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .tabs button.on { background: linear-gradient(135deg, var(--blue), #2B6FD6); }
+  select { font: inherit; font-size: 11.5px; background: var(--panel2); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 4px; max-width: 118px; }
+  .toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); cursor: pointer; user-select: none; }
+  .toggle input { accent-color: var(--amber); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chips button { font: inherit; font-size: 11.5px; background: rgba(61,139,255,.15); color: var(--fg); border: 1px solid rgba(61,139,255,.5); border-radius: 999px; padding: 3px 9px; cursor: pointer; }
+  .reset { font: inherit; font-size: 12px; background: transparent; color: var(--amber); border: 1px solid var(--amber); border-radius: 8px; padding: 5px 10px; cursor: pointer; margin-left: auto; }
+  .kpis { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; margin-bottom: 9px; }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 11px 9px; position: relative; overflow: hidden; }
+  .kpi::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--c, var(--blue)); }
+  .kpi .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .kpi .v { font-size: 20px; font-weight: 700; margin: 2px 0 1px; font-variant-numeric: tabular-nums; }
+  .kpi .d { font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .up { color: var(--green) !important; } .down { color: var(--red) !important; }
+  .grid { display: grid; gap: 9px; }
+  .g3 { grid-template-columns: 2fr 1fr 1fr; } .g2 { grid-template-columns: 1fr 1fr; } .g3e { grid-template-columns: 1fr 1fr 1fr; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px 10px; min-width: 0; }
+  .card h3 { margin: 0 0 2px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .card h3 .dot { width: 8px; height: 8px; border-radius: 2px; background: var(--c, var(--blue)); }
+  .card .sub { font-size: 11px; color: var(--muted); margin: 0 0 4px; }
+  .chart { position: relative; }
+  .chart svg { display: block; overflow: visible; }
+  .chart text { font-size: 11px; }
+  .chart text:not([fill]) { fill: var(--muted); }
+  .chart .lbl:not([fill]) { fill: var(--fg); }
+  .click { cursor: pointer; }
+  .tip { position: absolute; pointer-events: none; background: #0A1424; border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; font-size: 12px; white-space: nowrap; display: none; z-index: 9; box-shadow: 0 6px 20px rgba(0,0,0,.4); }
+  .tip b { display: block; color: var(--muted); font-weight: 500; font-size: 11px; }
+  .page { display: none; } .page.on { display: block; }
+  .callout { border-left: 3px solid var(--amber); background: rgba(245,165,36,.08); padding: 6px 10px; border-radius: 6px; font-size: 11.5px; color: var(--fg); margin-top: 6px; line-height: 1.45; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+  th { text-align: right; color: var(--muted); font-weight: 500; font-size: 11px; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  td { text-align: right; padding: 4px 6px; border-bottom: 1px solid rgba(35,58,90,.55); }
+  th:first-child, td:first-child { text-align: left; }
+  tbody tr { cursor: pointer; } tbody tr:hover td { background: rgba(61,139,255,.08); }
+  .pill { display: inline-block; min-width: 22px; text-align: center; border-radius: 6px; padding: 0 6px; font-weight: 700; font-size: 11px; color: #0B1626; }
+  .ins { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; }
+  .ins li { margin-bottom: 6px; }
+  .ins b { color: #fff; }
+  .note { font-size: 12px; color: var(--muted); line-height: 1.55; }
+  .foot { margin-top: 10px; font-size: 11.5px; color: var(--dim); display: flex; gap: 12px; flex-wrap: wrap; }
+  .foot a { color: var(--sky); text-decoration: none; }
+  .loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 20; font-size: 14px; color: var(--muted); }
+  @media (max-width: 1100px) { .kpis { grid-template-columns: repeat(4, 1fr); } .g3, .g2, .g3e { grid-template-columns: 1fr; } .scope { margin-left: 0; text-align: left; } }
+</style>
+</head>
+<body>
+<div class="loading" id="loading">Loading 178,396 order lines…</div>
+
+<div class="top">
+  <div class="brand">
+    <div class="logo">SC</div>
+    <div><h1>DataCo Supply Chain &amp; Sales Analytics</h1><p>Delivery reliability · profitability · products · customers · 2015–2017</p></div>
+  </div>
+  <div class="scope" id="scope"></div>
+</div>
+
+<div class="bar">
+  <span class="seg tabs" id="tabs">
+    <button data-p="overview" class="on">Overview</button>
+    <button data-p="delivery">Delivery &amp; SLA</button>
+    <button data-p="products">Products &amp; Margin</button>
+    <button data-p="customers">Customers &amp; Risk</button>
+    <button data-p="insights">Insights</button>
+  </span>
+  <span class="seg" id="years">
+    <button data-y="" class="on">All</button><button data-y="2015">2015</button><button data-y="2016">2016</button><button data-y="2017">2017</button>
+  </span>
+  <label class="toggle" title="Compare January–September only: removes the Q4-2017 change in the data"><input type="checkbox" id="lfl"> Jan–Sep only</label>
+  <select id="f-market"></select>
+  <select id="f-segment"></select>
+  <select id="f-mode"></select>
+  <select id="f-dept"></select>
+  <span class="chips" id="chips"></span>
+  <button class="reset" id="reset">Reset</button>
+</div>
+
+<div class="kpis" id="kpis"></div>
+
+<!-- PAGE 1: OVERVIEW -->
+<section class="page on" id="overview">
+  <div class="grid g3" style="margin-bottom:9px">
+    <div class="card"><h3><span class="dot"></span>Monthly trend
+      <span class="seg" id="metric" style="margin-left:auto"><button data-m="sales" class="on">Sales</button><button data-m="profit">Profit</button><button data-m="orders">Orders</button><button data-m="late">Late %</button></span></h3>
+      <p class="sub" id="trend-sub"></p><div class="chart" id="c-trend"></div></div>
+    <div class="card" style="--c:var(--teal)"><h3><span class="dot"></span>Sales by market</h3><p class="sub">Click a bar to filter every visual</p><div class="chart" id="c-market"></div></div>
+    <div class="card" style="--c:var(--purple)"><h3><span class="dot"></span>Customer segment</h3><p class="sub">Share of sales</p><div class="chart" id="c-segment"></div></div>
+  </div>
+  <div class="grid g3e">
+    <div class="card" style="--c:var(--amber)"><h3><span class="dot"></span>Top departments</h3><p class="sub">Sales and margin %</p><div class="chart" id="c-dept"></div></div>
+    <div class="card" style="--c:var(--red)"><h3><span class="dot"></span>Delivery status</h3><p class="sub">Shipped order lines</p><div class="chart" id="c-dstat"></div></div>
+    <div class="card" style="--c:var(--sky)"><h3><span class="dot"></span>Year-over-year scorecard</h3><p class="sub" id="yoy-sub"></p><div id="t-yoy"></div></div>
+  </div>
+</section>
+
+<!-- PAGE 2: DELIVERY -->
+<section class="page" id="delivery">
+  <div class="grid g2" style="margin-bottom:9px">
+    <div class="card" style="--c:var(--red)"><h3><span class="dot"></span>Promise vs reality by shipping mode</h3><p class="sub">Average days scheduled vs actually taken (shipped lines). Click a mode to filter</p><div class="chart" id="c-sla"></div>
+      <div class="callout" id="sla-callout"></div></div>
+    <div class="card" style="--c:var(--amber)"><h3><span class="dot"></span>How late is late?</h3><p class="sub">Days taken minus days promised (negative = early)</p><div class="chart" id="c-gap"></div></div>
+  </div>
+  <div class="grid g3e">
+    <div class="card" style="--c:var(--red)"><h3><span class="dot"></span>Late % by shipping mode</h3><p class="sub">Share of shipped lines delivered late</p><div class="chart" id="c-latemode"></div></div>
+    <div class="card" style="--c:var(--purple)"><h3><span class="dot"></span>Late % by region (top 10)</h3><p class="sub">Click a region to filter</p><div class="chart" id="c-region"></div></div>
+    <div class="card" style="--c:var(--teal)"><h3><span class="dot"></span>Lead-time profile</h3><p class="sub">Actual shipping days, share of lines</p><div class="chart" id="c-lead"></div></div>
+  </div>
+</section>
+
+<!-- PAGE 3: PRODUCTS -->
+<section class="page" id="products">
+  <div class="grid g2" style="margin-bottom:9px">
+    <div class="card" style="--c:var(--blue)"><h3><span class="dot"></span>Pareto: product concentration (ABC)</h3><p class="sub">Products ranked by sales · line = cumulative share · A = first 80%</p><div class="chart" id="c-pareto"></div></div>
+    <div class="card" style="--c:var(--teal)"><h3><span class="dot"></span>Top products</h3><p class="sub">Click a row to filter</p><div id="t-products"></div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card" style="--c:var(--amber)"><h3><span class="dot"></span>Category margin map</h3><p class="sub">Top 12 categories · bar = sales · label = margin % (red below average)</p><div class="chart" id="c-cat"></div></div>
+    <div class="card" style="--c:var(--red)"><h3><span class="dot"></span>Does discounting pay?</h3><p class="sub">Profit margin % by discount band</p><div class="chart" id="c-disc"></div></div>
+  </div>
+</section>
+
+<!-- PAGE 4: CUSTOMERS -->
+<section class="page" id="customers">
+  <div class="grid g3e" style="margin-bottom:9px">
+    <div class="card" style="--c:var(--red)"><h3><span class="dot"></span>Loss-making customers</h3><p class="sub">Customers whose total profit is negative</p><div id="loss-box"></div></div>
+    <div class="card" style="--c:var(--purple)"><h3><span class="dot"></span>Segment economics</h3><p class="sub">Click a row to filter</p><div id="t-seg"></div></div>
+    <div class="card" style="--c:var(--amber)"><h3><span class="dot"></span>Suspected fraud by payment type</h3><p class="sub">Share of orders flagged SUSPECTED_FRAUD</p><div class="chart" id="c-fraud"></div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card" style="--c:var(--blue)"><h3><span class="dot"></span>Order status funnel</h3><p class="sub">Orders by status · click to filter</p><div class="chart" id="c-status"></div></div>
+    <div class="card" style="--c:var(--teal)"><h3><span class="dot"></span>Top markets: sales vs late %</h3><p class="sub">Commercial size against delivery reliability</p><div class="chart" id="c-mkt2"></div></div>
+  </div>
+</section>
+
+<!-- PAGE 5: INSIGHTS -->
+<section class="page" id="insights">
+  <div class="grid g2">
+    <div class="card" style="--c:var(--amber)"><h3><span class="dot"></span>What the data says (updates with your filters)</h3><ol class="ins" id="ins"></ol></div>
+    <div class="card" style="--c:var(--sky)"><h3><span class="dot"></span>Data notes &amp; method</h3>
+      <div class="note">
+        <p><b>Pipeline:</b> raw CSV (180,519 lines × 53 columns) → Python cleaning (10 fixes, logged) → PostgreSQL star schema with 12 KPI views → Power BI and this web page.</p>
+        <p><b>Scope:</b> orders from 1 Jan 2015 to 31 Dec 2017. January 2018 (2,123 lines) is a partial month and is excluded.</p>
+        <p><b>Late %</b> is measured on shipped lines only. Cancelled and suspected-fraud orders never ship, so including them understates lateness (54.8% vs the correct 57.3%).</p>
+        <p><b>Q4-2017 change:</b> from October 2017 every order has one item and comes from a new customer. Full-year 2017 therefore shows sales −4.0% but Jan–Sep like-for-like shows <b>+4.7%</b>. Use the toggle above to compare fairly.</p>
+        <p><b>Market × time:</b> in most months one market carries over 95% of sales, so market totals partly reflect how many months each market appears.</p>
+      </div></div>
+  </div>
+</section>
+
+<div class="foot">
+  <span>Built by <b>Ravindra Narsayya Ushi</b> · Python · PostgreSQL · Power BI · DAX</span>
+  <a href="https://github.com/ravindraushi14-rock/Supply-Chain-Sales-Analysis" target="_blank" rel="noopener">GitHub repository ↗</a>
+  <a href="https://www.linkedin.com/in/ravindra-narsayya-ushi-465762302" target="_blank" rel="noopener">LinkedIn ↗</a>
+  <span>Data: DataCo Smart Supply Chain (public dataset)</span>
+</div>
+
+<script>
+const META = __META__;
+const B64 = "__DATA__";
+</script>
+<script>
+(function () {
+  // ---------- decode packed columns ----------
+  const raw = Uint8Array.from(atob(B64), (ch) => ch.charCodeAt(0));
+  const N = META.n, C = {};
+  let off = 0;
+  for (const [name, t] of META.fields) {
+    const size = t.endsWith("1") ? 1 : t.endsWith("2") ? 2 : 4;
+    const buf = raw.slice(off, off + N * size).buffer;       // copy = always aligned
+    C[name] = size === 1 ? new Uint8Array(buf) : size === 2 ? new Uint16Array(buf) : new Float32Array(buf);
+    off += N * size;
+  }
+  const P = META.products, M = META;
+  const price = Float64Array.from(P, (p) => p.price);
+  const SALES = new Float64Array(N);
+  for (let i = 0; i < N; i++) SALES[i] = price[C.pr[i]] * C.q[i];
+  const DEPTS = [...new Set(P.map((p) => p.dept))].sort();
+  const CATS = [...new Set(P.map((p) => p.cat))].sort();
+  const prodDept = Uint8Array.from(P, (p) => DEPTS.indexOf(p.dept));
+  const prodCat = Uint8Array.from(P, (p) => CATS.indexOf(p.cat));
+  const YEAR = Uint16Array.from(M.months, (m) => +m.slice(0, 4));
+  const MON = Uint8Array.from(M.months, (m) => +m.slice(5, 7));
+  const NOTSHIP = new Uint8Array(M.ostat.length);
+  ["CANCELED", "SUSPECTED_FRAUD"].forEach((s) => { const k = M.ostat.indexOf(s); if (k >= 0) NOTSHIP[k] = 1; });
+  const FRAUD = M.ostat.indexOf("SUSPECTED_FRAUD");
+  const LATE = M.dstat.indexOf("Late delivery"), ADV = M.dstat.indexOf("Advance shipping"), ONT = M.dstat.indexOf("Shipping on time");
+  const COL = { blue: "#3D8BFF", teal: "#1FC8A7", amber: "#F5A524", red: "#F2545B", purple: "#9C7CF4", green: "#34D17C", pink: "#EE6FB0", sky: "#4FC3F7", grey: "#3A5274", dim: "#5F7591" };
+  const PALETTE = [COL.blue, COL.teal, COL.amber, COL.purple, COL.pink, COL.sky, COL.green];
+
+  // ---------- state ----------
+  const S = { page: "overview", year: null, lfl: false, metric: "sales", market: null, segment: null, mode: null, dept: null, cat: null, product: null, region: null, status: null };
+  const LABEL = { market: "Market", segment: "Segment", mode: "Shipping", dept: "Department", cat: "Category", product: "Product", region: "Region", status: "Status" };
+  const fmtM = (v) => (Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(2) + "M" : Math.abs(v) >= 1e3 ? (v / 1e3).toFixed(1) + "K" : v.toFixed(0));
+  const fmtN = d3.format(","), pct = (v, d = 1) => (v * 100).toFixed(d) + "%";
+
+  // ---------- filtering ----------
+  function test(i, ex, yr) {
+    const mo = C.mo[i];
+    if (yr != null && YEAR[mo] !== yr) return false;
+    if (S.lfl && MON[mo] > 9) return false;
+    if (ex !== "market" && S.market != null && C.mk[i] !== S.market) return false;
+    if (ex !== "segment" && S.segment != null && C.sg[i] !== S.segment) return false;
+    if (ex !== "mode" && S.mode != null && C.sm[i] !== S.mode) return false;
+    if (ex !== "dept" && S.dept != null && prodDept[C.pr[i]] !== S.dept) return false;
+    if (ex !== "cat" && S.cat != null && prodCat[C.pr[i]] !== S.cat) return false;
+    if (ex !== "product" && S.product != null && C.pr[i] !== S.product) return false;
+    if (ex !== "region" && S.region != null && C.rg[i] !== S.region) return false;
+    if (ex !== "status" && S.status != null && C.os[i] !== S.status) return false;
+    return true;
+  }
+  let memo = new Map(), memoKey = "";
+  function rows(ex = "", yr = S.year) {
+    const key = JSON.stringify(S), k2 = ex + "|" + yr;
+    if (key !== memoKey) { memo = new Map(); memoKey = key; }
+    if (!memo.has(k2)) {
+      const out = [];
+      for (let i = 0; i < N; i++) if (test(i, ex, yr)) out.push(i);
+      memo.set(k2, Uint32Array.from(out));
+    }
+    return memo.get(k2);
+  }
+  const seenO = new Uint8Array(65536), seenC = new Uint8Array(65536);
+  function kpi(idx) {
+    let s = 0, p = 0, sh = 0, late = 0, ont = 0, days = 0, nO = 0, nC = 0;
+    seenO.fill(0); seenC.fill(0);
+    for (const i of idx) {
+      s += SALES[i]; p += C.pf[i];
+      if (!seenO[C.o[i]]) { seenO[C.o[i]] = 1; nO++; }
+      if (!seenC[C.c[i]]) { seenC[C.c[i]] = 1; nC++; }
+      if (!NOTSHIP[C.os[i]]) { sh++; days += C.dr[i]; if (C.ds[i] === LATE) late++; else if (C.ds[i] === ADV || C.ds[i] === ONT) ont++; }
+    }
+    return { sales: s, profit: p, margin: s ? p / s : 0, orders: nO, customers: nC, aov: nO ? s / nO : 0, late: sh ? late / sh : 0, ontime: sh ? ont / sh : 0, lead: sh ? days / sh : 0, n: idx.length };
+  }
+  function group(idx, keyFn, nKeys) {
+    const g = Array.from({ length: nKeys }, () => ({ s: 0, p: 0, n: 0, sh: 0, late: 0, sched: 0, real: 0, q: 0 }));
+    for (const i of idx) {
+      const a = g[keyFn(i)]; a.s += SALES[i]; a.p += C.pf[i]; a.n++; a.q += C.q[i];
+      if (!NOTSHIP[C.os[i]]) { a.sh++; a.sched += C.dsch[i]; a.real += C.dr[i]; if (C.ds[i] === LATE) a.late++; }
+    }
+    return g;
+  }
+  function compare() {
+    if (S.year === 2015) return null;
+    const cur = S.year || 2017;
+    return { cur: kpi(rows("", cur)), prev: kpi(rows("", cur - 1)), label: S.lfl ? `vs Jan–Sep ${cur - 1}` : `vs ${cur - 1}` };
+  }
+
+  // ---------- small helpers ----------
+  const tipEl = document.createElement("div"); tipEl.className = "tip"; document.body.appendChild(tipEl);
+  function tip(e, head, body) { tipEl.innerHTML = `<b>${head}</b>${body}`; tipEl.style.display = "block"; tipEl.style.left = Math.min(window.innerWidth - tipEl.offsetWidth - 8, e.pageX + 12) + "px"; tipEl.style.top = e.pageY - 34 + "px"; }
+  function untip() { tipEl.style.display = "none"; }
+  function toggle(k, v) { S[k] = S[k] === v ? null : v; render(); }
+  function svgIn(el, h) { const w = el.clientWidth || 400; el.innerHTML = ""; return [d3.select(el).append("svg").attr("width", w).attr("height", h), w]; }
+  function axis(g) { g.selectAll("text").attr("fill", "#93A6BE").style("font-size", "10.5px"); g.selectAll("line").attr("stroke", "#233A5A"); g.select(".domain").remove(); }
+
+  function hbars(id, data, opt) {
+    const el = document.getElementById(id), bh = opt.bh || 16, gap = opt.gap || 5, H = data.length * (bh + gap);
+    const [svg, W] = svgIn(el, H), lw = opt.lw || 110, vw = opt.vw || 70;
+    const max = d3.max(data, (d) => d.v) || 1, x = d3.scaleLinear([0, max], [0, W - lw - vw]);
+    const g = svg.selectAll("g").data(data).join("g").attr("transform", (d, i) => `translate(0,${i * (bh + gap)})`)
+      .attr("class", opt.key ? "click" : null).style("opacity", (d) => (opt.sel != null && opt.sel !== d.k ? 0.35 : 1))
+      .on("click", (e, d) => opt.key && toggle(opt.key, d.k))
+      .on("mousemove", (e, d) => tip(e, d.label, opt.tipFn ? opt.tipFn(d) : opt.fmt(d.v))).on("mouseleave", untip);
+    g.append("text").attr("x", lw - 8).attr("y", bh / 2).attr("dy", "0.35em").attr("text-anchor", "end").attr("class", "lbl").text((d) => d.label.length > 18 ? d.label.slice(0, 17) + "…" : d.label);
+    g.append("rect").attr("x", lw).attr("height", bh).attr("rx", 4).attr("width", (d) => Math.max(2, x(d.v))).attr("fill", (d, i) => (opt.color ? opt.color(d, i) : COL.blue));
+    g.append("text").attr("x", (d) => lw + Math.max(2, x(d.v)) + 6).attr("y", bh / 2).attr("dy", "0.35em").attr("class", "lbl").style("font-weight", 600).text((d) => opt.fmt(d.v));
+  }
+  function donut(id, data, opt) {
+    const el = document.getElementById(id), H = opt.h || 150, [svg, W] = svgIn(el, H), r = Math.min(H / 2 - 4, 70);
+    const tot = d3.sum(data, (d) => d.v) || 1, cx = r + 6;
+    const arc = d3.arc().innerRadius(r * 0.62).outerRadius(r), pie = d3.pie().value((d) => d.v).sort(null);
+    const g = svg.append("g").attr("transform", `translate(${cx},${H / 2})`);
+    g.selectAll("path").data(pie(data)).join("path").attr("d", arc).attr("fill", (d) => d.data.c).attr("stroke", "#132238").attr("stroke-width", 2)
+      .attr("class", opt.key ? "click" : null).style("opacity", (d) => (opt.sel != null && opt.sel !== d.data.k ? 0.35 : 1))
+      .on("click", (e, d) => opt.key && toggle(opt.key, d.data.k)).on("mousemove", (e, d) => tip(e, d.data.label, pct(d.data.v / tot) + " · " + opt.fmt(d.data.v))).on("mouseleave", untip);
+    g.append("text").attr("text-anchor", "middle").attr("dy", "-0.1em").attr("class", "lbl").style("font-size", "17px").style("font-weight", 700).text(opt.center[0]);
+    g.append("text").attr("text-anchor", "middle").attr("dy", "1.3em").style("font-size", "10.5px").text(opt.center[1]);
+    const lg = svg.append("g").attr("transform", `translate(${cx + r + 18},${H / 2 - data.length * 11})`);
+    data.forEach((d, i) => {
+      const row = lg.append("g").attr("transform", `translate(0,${i * 22})`).attr("class", opt.key ? "click" : null).on("click", () => opt.key && toggle(opt.key, d.k));
+      row.append("rect").attr("width", 10).attr("height", 10).attr("rx", 2).attr("fill", d.c);
+      row.append("text").attr("x", 16).attr("y", 9).attr("class", "lbl").text(d.label);
+      row.append("text").attr("x", 16).attr("y", 9).attr("dx", W - cx - r - 40).attr("text-anchor", "end").style("font-weight", 700).attr("class", "lbl").text(pct(d.v / tot));
+    });
+  }
+  function columns(id, data, opt) {
+    const el = document.getElementById(id), H = opt.h || 170, [svg, W] = svgIn(el, H), m = { t: 16, b: 22, l: 6, r: 6 };
+    const x = d3.scaleBand(data.map((d) => d.label), [m.l, W - m.r]).padding(0.25), y = d3.scaleLinear([Math.min(0, d3.min(data, (d) => d.v)), d3.max(data, (d) => d.v) || 1], [H - m.b, m.t]);
+    svg.append("g").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).tickSize(0).tickPadding(6)).call(axis);
+    svg.selectAll("rect").data(data).join("rect").attr("x", (d) => x(d.label)).attr("width", x.bandwidth()).attr("y", (d) => y(Math.max(0, d.v))).attr("height", (d) => Math.abs(y(d.v) - y(0))).attr("rx", 4)
+      .attr("fill", (d, i) => opt.color(d, i)).on("mousemove", (e, d) => tip(e, d.label, opt.tipFn ? opt.tipFn(d) : opt.fmt(d.v))).on("mouseleave", untip);
+    svg.selectAll(".vl").data(data).join("text").attr("x", (d) => x(d.label) + x.bandwidth() / 2).attr("y", (d) => y(Math.max(0, d.v)) - 4).attr("text-anchor", "middle").attr("class", "lbl").style("font-weight", 600).style("font-size", "10.5px").text((d) => opt.fmt(d.v));
+  }
+
+  // ---------- render ----------
+  function render() {
+    document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.p === S.page));
+    document.querySelectorAll(".page").forEach((p) => p.classList.toggle("on", p.id === S.page));
+    document.querySelectorAll("#years button").forEach((b) => b.classList.toggle("on", (b.dataset.y || null) == (S.year || null)));
+    document.querySelectorAll("#metric button").forEach((b) => b.classList.toggle("on", b.dataset.m === S.metric));
+    document.getElementById("lfl").checked = S.lfl;
+    [["f-market", "market"], ["f-segment", "segment"], ["f-mode", "mode"], ["f-dept", "dept"]].forEach(([id, k]) => (document.getElementById(id).value = S[k] == null ? "" : S[k]));
+    const chips = document.getElementById("chips"); chips.innerHTML = "";
+    const names = { cat: (v) => CATS[v], product: (v) => P[v].name, region: (v) => M.regions[v], status: (v) => M.ostat[v] };
+    Object.keys(names).forEach((k) => { if (S[k] != null) { const b = document.createElement("button"); b.textContent = `${LABEL[k]}: ${names[k](S[k])} ×`; b.onclick = () => toggle(k, S[k]); chips.appendChild(b); } });
+
+    const all = rows(), K = kpi(all), cmp = compare();
+    document.getElementById("scope").innerHTML = `Showing <b>${S.year || "2015–2017"}${S.lfl ? " (Jan–Sep)" : ""}</b> · <b>${fmtN(K.n)}</b> order lines · sales <b>$${fmtM(K.sales)}</b>`;
+    renderKpis(K, cmp);
+    const pg = S.page;
+    if (pg === "overview") renderOverview(all, cmp);
+    if (pg === "delivery") renderDelivery(all);
+    if (pg === "products") renderProducts(all);
+    if (pg === "customers") renderCustomers(all);
+    if (pg === "insights") renderInsights(all, K);
+  }
+
+  function renderKpis(K, cmp) {
+    const defs = [
+      ["Sales", "$" + fmtM(K.sales), "sales", "rel", COL.blue], ["Profit", "$" + fmtM(K.profit), "profit", "rel", COL.green],
+      ["Profit margin", pct(K.margin, 2), "margin", "pts", COL.teal], ["Orders", fmtN(K.orders), "orders", "rel", COL.purple],
+      ["Customers", fmtN(K.customers), "customers", "rel", COL.pink], ["Avg order value", "$" + K.aov.toFixed(0), "aov", "rel", COL.sky],
+      ["On-time delivery", pct(K.ontime), "ontime", "pts", COL.amber], ["Avg lead time", K.lead.toFixed(2) + " d", "lead", "days", COL.red],
+    ];
+    document.getElementById("kpis").innerHTML = defs.map(([l, v, k, kind, c]) => {
+      let d = "No prior year";
+      let cls = "";
+      if (cmp) {
+        const a = cmp.cur[k], b = cmp.prev[k];
+        let ch = kind === "rel" ? (b ? a / b - 1 : 0) : a - b;
+        const good = k === "lead" ? ch <= 0 : ch >= 0;
+        cls = good ? "up" : "down";
+        const val = kind === "rel" ? (ch * 100).toFixed(1) + "%" : kind === "pts" ? (ch * 100).toFixed(1) + " pts" : ch.toFixed(2) + " d";
+        d = `${ch >= 0 ? "▲ +" : "▼ "}${val.replace("-", "")} <span style="color:#5F7591">${cmp.label}</span>`;
+      }
+      return `<div class="kpi" style="--c:${c}"><div class="l">${l}</div><div class="v">${v}</div><div class="d ${cls}">${d}</div></div>`;
+    }).join("");
+  }
+
+  function renderOverview(all, cmp) {
+    // trend
+    const idx = rows("", null), byM = group(idx, (i) => C.mo[i], M.months.length);
+    const oc = M.months.map(() => new Set());
+    for (const i of idx) oc[C.mo[i]].add(C.o[i]);
+    const metric = S.metric, data = M.months.map((m, k) => ({ m, k, y: YEAR[k],
+      v: metric === "sales" ? byM[k].s : metric === "profit" ? byM[k].p : metric === "orders" ? oc[k].size : byM[k].sh ? byM[k].late / byM[k].sh : 0 })).filter((d) => byM[d.k].n > 0);
+    document.getElementById("trend-sub").textContent = metric === "late" ? "Late % of shipped lines per month · amber band = Q4-2017 data change" : "Per month · selected year highlighted · amber band = Q4-2017 data change";
+    const el = document.getElementById("c-trend"), H = 172, [svg, W] = svgIn(el, H), m = { t: 10, r: 8, b: 22, l: 46 };
+    const x = d3.scaleBand(data.map((d) => d.m), [m.l, W - m.r]).padding(0.18);
+    const y = d3.scaleLinear([0, d3.max(data, (d) => d.v) * 1.12 || 1], [H - m.b, m.t]).nice();
+    const fy = metric === "late" ? (v) => (v * 100).toFixed(0) + "%" : metric === "orders" ? d3.format("~s") : (v) => "$" + d3.format("~s")(v);
+    const q4 = data.filter((d) => d.m >= "2017-10");
+    if (q4.length) svg.append("rect").attr("x", x(q4[0].m) - 2).attr("y", m.t).attr("width", x(q4[q4.length - 1].m) + x.bandwidth() - x(q4[0].m) + 4).attr("height", H - m.b - m.t).attr("fill", "rgba(245,165,36,.16)");
+    if (q4.length) svg.append("text").attr("x", x(q4[0].m)).attr("y", m.t + 10).attr("fill", "#F5A524").style("font-size", "10px").text("Q4-17 data change");
+    svg.append("g").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4).tickSize(-(W - m.l - m.r)).tickFormat(fy)).call(axis);
+    svg.append("g").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).tickValues(data.filter((d, i) => i % 3 === 0).map((d) => d.m)).tickFormat((s) => d3.timeFormat("%b %y")(new Date(s + "-01"))).tickSize(0).tickPadding(6)).call(axis);
+    const colorBy = metric === "late" ? COL.red : metric === "profit" ? COL.green : metric === "orders" ? COL.purple : COL.blue;
+    svg.selectAll("rect.b").data(data).join("rect").attr("class", "b click").attr("x", (d) => x(d.m)).attr("width", x.bandwidth()).attr("y", (d) => y(Math.max(0, d.v))).attr("height", (d) => Math.abs(y(0) - y(d.v))).attr("rx", 2)
+      .attr("fill", colorBy).style("opacity", (d) => (S.year && d.y !== S.year ? 0.28 : 1))
+      .on("click", (e, d) => { S.year = S.year === d.y ? null : d.y; render(); })
+      .on("mousemove", (e, d) => tip(e, d3.timeFormat("%B %Y")(new Date(d.m + "-01")), fy(d.v))).on("mouseleave", untip);
+    // market
+    const gm = group(rows("market"), (i) => C.mk[i], M.markets.length);
+    hbars("c-market", gm.map((a, k) => ({ k, label: M.markets[k], v: a.s, a })).filter((d) => d.a.n).sort((a, b) => b.v - a.v),
+      { key: "market", sel: S.market, fmt: (v) => "$" + fmtM(v), lw: 92, color: (d, i) => PALETTE[i % 7], tipFn: (d) => `$${fmtM(d.v)} · margin ${pct(d.a.p / d.a.s)} · late ${pct(d.a.sh ? d.a.late / d.a.sh : 0)}` });
+    // segment donut
+    const gs = group(rows("segment"), (i) => C.sg[i], M.segments.length);
+    donut("c-segment", gs.map((a, k) => ({ k, label: M.segments[k], v: a.s, c: [COL.blue, COL.purple, COL.teal][k] })), { key: "segment", sel: S.segment, fmt: (v) => "$" + fmtM(v), center: ["$" + fmtM(d3.sum(gs, (a) => a.s)), "sales"] });
+    // departments
+    const gd = group(rows("dept"), (i) => prodDept[C.pr[i]], DEPTS.length);
+    hbars("c-dept", gd.map((a, k) => ({ k, label: DEPTS[k], v: a.s, a })).filter((d) => d.a.n).sort((a, b) => b.v - a.v).slice(0, 7),
+      { key: "dept", sel: S.dept, bh: 13, lw: 96, vw: 92, fmt: (v) => "$" + fmtM(v), color: () => COL.amber, tipFn: (d) => `$${fmtM(d.v)} · margin ${pct(d.a.p / d.a.s)}` });
+    d3.select("#c-dept svg").selectAll("g").append("text").attr("x", (d) => (document.getElementById("c-dept").clientWidth - 4)).attr("y", 6.5).attr("dy", "0.35em").attr("text-anchor", "end").style("font-size", "10.5px")
+      .attr("fill", (d) => (d.a.p / d.a.s < 0.1 ? COL.red : COL.green)).text((d) => pct(d.a.p / d.a.s));
+    // delivery status donut (shipped only)
+    const gds = [0, 0, 0, 0];
+    for (const i of all) if (!NOTSHIP[C.os[i]]) gds[C.ds[i]]++;
+    const dsCol = [COL.green, COL.teal, COL.red, COL.dim];
+    donut("c-dstat", [0, 1, 2].map((k) => ({ k, label: M.dstat[k], v: gds[k], c: dsCol[k] })), { fmt: fmtN, center: [pct(gds[2] / (gds[0] + gds[1] + gds[2] || 1)), "late"] });
+    // YoY scorecard
+    const ys = [2015, 2016, 2017].map((y) => ({ y, k: kpi(rows("", y)) }));
+    document.getElementById("yoy-sub").textContent = S.lfl ? "January–September of each year" : "Full calendar years";
+    const yrow = (lab, f, kind, goodUp = true) => {
+      const cells = ys.map((r, i) => {
+        if (!i) return `<td>${f(r.k)}</td>`;
+        const a = kind(r.k), b = kind(ys[i - 1].k), ch = b ? a / b - 1 : 0, good = goodUp ? ch >= 0 : ch <= 0;
+        return `<td>${f(r.k)} <span class="${good ? "up" : "down"}" style="font-size:10.5px">${ch >= 0 ? "▲" : "▼"}${Math.abs(ch * 100).toFixed(1)}%</span></td>`;
+      });
+      return `<tr><td>${lab}</td>${cells.join("")}</tr>`;
+    };
+    document.getElementById("t-yoy").innerHTML = `<table><thead><tr><th>KPI</th><th>2015</th><th>2016</th><th>2017</th></tr></thead><tbody>
+      ${yrow("Sales", (k) => "$" + fmtM(k.sales), (k) => k.sales)}${yrow("Profit", (k) => "$" + fmtM(k.profit), (k) => k.profit)}
+      ${yrow("Orders", (k) => fmtN(k.orders), (k) => k.orders)}${yrow("Customers", (k) => fmtN(k.customers), (k) => k.customers)}
+      ${yrow("Avg order", (k) => "$" + k.aov.toFixed(0), (k) => k.aov)}${yrow("Late %", (k) => pct(k.late), (k) => k.late, false)}</tbody></table>`;
+  }
+
+  function renderDelivery(all) {
+    const gmode = group(rows("mode"), (i) => C.sm[i], M.modes.length);
+    // grouped promise vs actual
+    const el = document.getElementById("c-sla"), H = 140, [svg, W] = svgIn(el, H), m = { t: 18, r: 8, b: 24, l: 30 };
+    const data = gmode.map((a, k) => ({ k, label: M.modes[k], sched: a.sh ? a.sched / a.sh : 0, real: a.sh ? a.real / a.sh : 0, late: a.sh ? a.late / a.sh : 0 })).filter((d) => gmode[d.k].sh);
+    const x0 = d3.scaleBand(data.map((d) => d.label), [m.l, W - m.r]).padding(0.25), x1 = d3.scaleBand(["sched", "real"], [0, x0.bandwidth()]).padding(0.1);
+    const y = d3.scaleLinear([0, d3.max(data, (d) => Math.max(d.sched, d.real)) * 1.2 || 1], [H - m.b, m.t]);
+    svg.append("g").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4).tickSize(-(W - m.l - m.r))).call(axis);
+    svg.append("g").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x0).tickSize(0).tickPadding(6)).call(axis);
+    const g = svg.selectAll("g.m").data(data).join("g").attr("class", "m click").attr("transform", (d) => `translate(${x0(d.label)},0)`).style("opacity", (d) => (S.mode != null && S.mode !== d.k ? 0.35 : 1)).on("click", (e, d) => toggle("mode", d.k));
+    [["sched", COL.grey, "Promised"], ["real", COL.red, "Actual"]].forEach(([k, c, name]) => {
+      g.append("rect").attr("x", x1(k)).attr("width", x1.bandwidth()).attr("y", (d) => y(d[k])).attr("height", (d) => y(0) - y(d[k])).attr("rx", 4).attr("fill", k === "real" ? (d) => (d.real - d.sched > 0.05 ? COL.red : COL.green) : c)
+        .on("mousemove", (e, d) => tip(e, `${d.label} · ${name}`, d[k].toFixed(2) + " days")).on("mouseleave", untip);
+      g.append("text").attr("x", x1(k) + x1.bandwidth() / 2).attr("y", (d) => y(d[k]) - 4).attr("text-anchor", "middle").attr("class", "lbl").style("font-size", "10.5px").style("font-weight", 600).text((d) => d[k].toFixed(1));
+    });
+    const lg = svg.append("g").attr("transform", `translate(${W - 150},2)`);
+    [["Promised", COL.grey], ["Actual (red = later than promise)", COL.red]].forEach(([t, c], i) => { lg.append("rect").attr("x", i ? 62 : 0).attr("width", 9).attr("height", 9).attr("fill", c); lg.append("text").attr("x", (i ? 62 : 0) + 13).attr("y", 8).style("font-size", "10px").text(i ? "Actual" : t); });
+    const fc = data.find((d) => d.label === "First Class"), sc = data.find((d) => d.label === "Second Class"), st = data.find((d) => d.label === "Standard Class");
+    document.getElementById("sla-callout").innerHTML = fc && sc && st ? `<b>Root cause:</b> First Class promises ${fc.sched.toFixed(0)} day but takes ${fc.real.toFixed(1)} (${pct(fc.late, 0)} late); Second Class promises ${sc.sched.toFixed(0)} but takes ${sc.real.toFixed(1)} (${pct(sc.late, 0)} late). Standard Class keeps its promise (${pct(st.late, 0)} late). The problem is mainly <b>unrealistic premium SLAs</b>, not slow warehouses.` : "Select all shipping modes to see the comparison.";
+    // gap distribution
+    const gaps = new Map();
+    let shipped = 0;
+    for (const i of all) if (!NOTSHIP[C.os[i]]) { const gp = C.dr[i] - C.dsch[i]; gaps.set(gp, (gaps.get(gp) || 0) + 1); shipped++; }
+    const gd = [...gaps.entries()].sort((a, b) => a[0] - b[0]).map(([k, v]) => ({ label: (k > 0 ? "+" : "") + k + "d", g: k, v: v / (shipped || 1) }));
+    columns("c-gap", gd, { h: 185, fmt: (v) => pct(v, 0), color: (d) => (d.g < 0 ? COL.green : d.g === 0 ? COL.teal : d.g === 1 ? COL.amber : COL.red), tipFn: (d) => pct(d.v) + " of shipped lines" });
+    // late by mode
+    hbars("c-latemode", data.map((d) => ({ k: d.k, label: d.label, v: d.late })).sort((a, b) => b.v - a.v), { key: "mode", sel: S.mode, lw: 104, fmt: (v) => pct(v), color: (d) => (d.v > 0.6 ? COL.red : d.v > 0.45 ? COL.amber : COL.green) });
+    // regions
+    const greg = group(rows("region"), (i) => C.rg[i], M.regions.length);
+    hbars("c-region", greg.map((a, k) => ({ k, label: M.regions[k], v: a.sh ? a.late / a.sh : 0, n: a.sh })).filter((d) => d.n > 300).sort((a, b) => b.v - a.v).slice(0, 10),
+      { key: "region", sel: S.region, bh: 11, gap: 4, lw: 118, fmt: (v) => pct(v), color: (d, i) => (i < 3 ? COL.red : COL.purple), tipFn: (d) => `${pct(d.v)} late · ${fmtN(d.n)} shipped lines` });
+    // lead profile
+    const lead = new Array(7).fill(0);
+    for (const i of all) if (!NOTSHIP[C.os[i]]) lead[C.dr[i]]++;
+    const lt = d3.sum(lead) || 1;
+    columns("c-lead", lead.map((v, k) => ({ label: k + "d", v: v / lt, k })), { h: 160, fmt: (v) => pct(v, 0), color: (d) => [COL.teal, COL.teal, COL.blue, COL.blue, COL.purple, COL.amber, COL.red][d.k] });
+  }
+
+  function renderProducts(all) {
+    const gp = group(rows("product"), (i) => C.pr[i], P.length);
+    const ranked = gp.map((a, k) => ({ k, label: P[k].name, cat: P[k].cat, v: a.s, a })).filter((d) => d.a.n).sort((a, b) => b.v - a.v);
+    const tot = d3.sum(ranked, (d) => d.v) || 1;
+    let cum = 0; ranked.forEach((d) => { cum += d.v; d.cum = cum / tot; d.cls = d.cum - d.v / tot < 0.8 ? "A" : d.cum - d.v / tot < 0.95 ? "B" : "C"; });
+    const clsCol = { A: COL.blue, B: COL.teal, C: COL.dim };
+    const el = document.getElementById("c-pareto"), H = 172, [svg, W] = svgIn(el, H), m = { t: 12, r: 36, b: 20, l: 44 };
+    const x = d3.scaleBand(ranked.map((d) => d.k), [m.l, W - m.r]).padding(0.12), y = d3.scaleLinear([0, d3.max(ranked, (d) => d.v) || 1], [H - m.b, m.t]).nice(), y2 = d3.scaleLinear([0, 1], [H - m.b, m.t]);
+    svg.append("g").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4).tickSize(-(W - m.l - m.r)).tickFormat((v) => "$" + d3.format("~s")(v))).call(axis);
+    svg.append("g").attr("transform", `translate(${W - m.r},0)`).call(d3.axisRight(y2).ticks(4).tickFormat(d3.format(".0%")).tickSize(0).tickPadding(4)).call(axis);
+    svg.append("line").attr("x1", m.l).attr("x2", W - m.r).attr("y1", y2(0.8)).attr("y2", y2(0.8)).attr("stroke", COL.amber).attr("stroke-dasharray", "4 3");
+    svg.selectAll("rect.p").data(ranked).join("rect").attr("class", "p click").attr("x", (d) => x(d.k)).attr("width", x.bandwidth()).attr("y", (d) => y(d.v)).attr("height", (d) => y(0) - y(d.v)).attr("fill", (d) => clsCol[d.cls])
+      .style("opacity", (d) => (S.product != null && S.product !== d.k ? 0.3 : 1)).on("click", (e, d) => toggle("product", d.k)).on("mousemove", (e, d) => tip(e, d.label, `$${fmtM(d.v)} · class ${d.cls} · cumulative ${pct(d.cum)}`)).on("mouseleave", untip);
+    svg.append("path").datum(ranked).attr("fill", "none").attr("stroke", COL.amber).attr("stroke-width", 2).attr("d", d3.line().x((d) => x(d.k) + x.bandwidth() / 2).y((d) => y2(d.cum)));
+    const nA = ranked.filter((d) => d.cls === "A").length;
+    svg.append("text").attr("x", W - m.r - 4).attr("y", y2(0.8) - 5).attr("text-anchor", "end").attr("fill", COL.amber).style("font-size", "11px").style("font-weight", 700).text(`${nA} products (${pct(nA / (ranked.length || 1), 0)}) = 80% of sales`);
+    // top products table
+    const top = ranked.slice(0, 7);
+    document.getElementById("t-products").innerHTML = `<table><thead><tr><th>Product</th><th>Sales</th><th>Units</th><th>Margin</th><th>Class</th></tr></thead><tbody>${top.map((d) => `<tr data-k="${d.k}" style="opacity:${S.product != null && S.product !== d.k ? 0.4 : 1}"><td>${d.label.length > 34 ? d.label.slice(0, 33) + "…" : d.label}</td><td>$${fmtM(d.v)}</td><td>${fmtN(d.a.q)}</td><td style="color:${d.a.p / d.a.s < 0.105 ? COL.red : COL.green}">${pct(d.a.p / d.a.s)}</td><td><span class="pill" style="background:${clsCol[d.cls]}">${d.cls}</span></td></tr>`).join("")}</tbody></table>`;
+    document.querySelectorAll("#t-products tbody tr").forEach((tr) => (tr.onclick = () => toggle("product", +tr.dataset.k)));
+    // category
+    const gc = group(rows("cat"), (i) => prodCat[C.pr[i]], CATS.length);
+    const avg = d3.sum(gc, (a) => a.p) / (d3.sum(gc, (a) => a.s) || 1);
+    const cats = gc.map((a, k) => ({ k, label: CATS[k], v: a.s, m: a.s ? a.p / a.s : 0 })).filter((d) => d.v).sort((a, b) => b.v - a.v).slice(0, 12);
+    hbars("c-cat", cats, { key: "cat", sel: S.cat, bh: 10, lw: 126, vw: 108, fmt: (v) => "$" + fmtM(v), color: (d) => (d.m < avg ? COL.red : COL.teal), tipFn: (d) => `$${fmtM(d.v)} · margin ${pct(d.m)}` });
+    d3.select("#c-cat svg").selectAll("g").append("text").attr("x", document.getElementById("c-cat").clientWidth - 2).attr("y", 5).attr("dy", "0.35em").attr("text-anchor", "end").style("font-size", "10.5px").attr("fill", (d) => (d.m < avg ? COL.red : COL.green)).text((d) => pct(d.m));
+    // discount
+    const gb = group(all, (i) => C.bd[i], M.bands.length);
+    columns("c-disc", gb.map((a, k) => ({ label: M.bands[k], v: a.s ? a.p / a.s : 0, a })), { h: 160, fmt: (v) => pct(v), color: (d, i) => d3.interpolateRgb(COL.green, COL.red)(i / 4), tipFn: (d) => `margin ${pct(d.v)} · sales $${fmtM(d.a.s)}` });
+  }
+
+  function renderCustomers(all) {
+    // loss-making customers within current filter
+    const prof = new Float64Array(65536), sal = new Float64Array(65536), seg = new Uint8Array(65536), seen = new Uint8Array(65536);
+    for (const i of all) { const c = C.c[i]; prof[c] += C.pf[i]; sal[c] += SALES[i]; seg[c] = C.sg[i]; seen[c] = 1; }
+    let nC = 0, nL = 0, lS = 0, lP = 0, tS = 0, tP = 0; const bySeg = [0, 0, 0];
+    for (let c = 0; c < 65536; c++) if (seen[c]) { nC++; tS += sal[c]; tP += prof[c]; if (prof[c] < 0) { nL++; lS += sal[c]; lP += prof[c]; bySeg[seg[c]]++; } }
+    document.getElementById("loss-box").innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+        <div class="kpi" style="--c:${COL.red}"><div class="l">Loss customers</div><div class="v">${fmtN(nL)}</div><div class="d">${pct(nL / (nC || 1))} of customers</div></div>
+        <div class="kpi" style="--c:${COL.red}"><div class="l">Profit lost</div><div class="v down">−$${fmtM(Math.abs(lP))}</div><div class="d">${pct(Math.abs(lP) / (tP || 1))} of total profit</div></div>
+        <div class="kpi" style="--c:${COL.amber}"><div class="l">Their sales</div><div class="v">$${fmtM(lS)}</div><div class="d">${pct(lS / (tS || 1))} of sales</div></div>
+        <div class="kpi" style="--c:${COL.purple}"><div class="l">By segment</div><div class="v" style="font-size:13px;line-height:1.5">${M.segments.map((s, k) => `${s}: <b>${fmtN(bySeg[k])}</b>`).join("<br>")}</div></div>
+      </div>`;
+    // segment table
+    const gs = group(rows("segment"), (i) => C.sg[i], M.segments.length);
+    document.getElementById("t-seg").innerHTML = `<table><thead><tr><th>Segment</th><th>Sales</th><th>Margin</th><th>Late %</th></tr></thead><tbody>${gs.map((a, k) => `<tr data-k="${k}" style="opacity:${S.segment != null && S.segment !== k ? 0.4 : 1}"><td><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${[COL.blue, COL.purple, COL.teal][k]};margin-right:6px"></span>${M.segments[k]}</td><td>$${fmtM(a.s)}</td><td>${pct(a.s ? a.p / a.s : 0)}</td><td style="color:${COL.red}">${pct(a.sh ? a.late / a.sh : 0)}</td></tr>`).join("")}</tbody></table>`;
+    document.querySelectorAll("#t-seg tbody tr").forEach((tr) => (tr.onclick = () => toggle("segment", +tr.dataset.k)));
+    // fraud by payment type (orders)
+    const fo = M.pays.map(() => new Set()), to = M.pays.map(() => new Set());
+    for (const i of rows("status")) { to[C.pt[i]].add(C.o[i]); if (C.os[i] === FRAUD) fo[C.pt[i]].add(C.o[i]); }
+    hbars("c-fraud", M.pays.map((p, k) => ({ k, label: p, v: to[k].size ? fo[k].size / to[k].size : 0, n: fo[k].size })).sort((a, b) => b.v - a.v),
+      { lw: 80, fmt: (v) => pct(v), color: (d) => (d.v > 0.02 ? COL.red : COL.green), tipFn: (d) => `${pct(d.v)} of orders · ${fmtN(d.n)} flagged` });
+    // order status
+    const so = M.ostat.map(() => new Set());
+    for (const i of rows("status")) so[C.os[i]].add(C.o[i]);
+    const stCol = { COMPLETE: COL.green, CLOSED: COL.teal, PROCESSING: COL.blue, PENDING: COL.sky, PENDING_PAYMENT: COL.amber, ON_HOLD: COL.purple, PAYMENT_REVIEW: COL.pink, SUSPECTED_FRAUD: COL.red, CANCELED: COL.dim };
+    hbars("c-status", M.ostat.map((s, k) => ({ k, label: s.replace("_", " "), raw: s, v: so[k].size })).sort((a, b) => b.v - a.v), { key: "status", sel: S.status, bh: 12, lw: 120, fmt: fmtN, color: (d) => stCol[d.raw] || COL.blue });
+    // markets: sales vs late
+    const gm = group(rows("market"), (i) => C.mk[i], M.markets.length);
+    hbars("c-mkt2", gm.map((a, k) => ({ k, label: M.markets[k], v: a.s, late: a.sh ? a.late / a.sh : 0, n: a.n })).filter((d) => d.n).sort((a, b) => b.v - a.v),
+      { key: "market", sel: S.market, bh: 18, lw: 92, vw: 140, fmt: (v) => "$" + fmtM(v), color: (d, i) => PALETTE[i % 7], tipFn: (d) => `$${fmtM(d.v)} · late ${pct(d.late)}` });
+    d3.select("#c-mkt2 svg").selectAll("g").append("text").attr("x", document.getElementById("c-mkt2").clientWidth - 2).attr("y", 9).attr("dy", "0.35em").attr("text-anchor", "end").style("font-size", "11px").style("font-weight", 600).attr("fill", COL.red).text((d) => "late " + pct(d.late));
+  }
+
+  function renderInsights(all, K) {
+    const gmode = group(all, (i) => C.sm[i], M.modes.length);
+    const modes = gmode.map((a, k) => ({ l: M.modes[k], late: a.sh ? a.late / a.sh : 0, s: a.sh ? a.sched / a.sh : 0, r: a.sh ? a.real / a.sh : 0, n: a.sh })).filter((d) => d.n);
+    const worst = modes.slice().sort((a, b) => b.late - a.late)[0];
+    const gp = group(all, (i) => C.pr[i], P.length).map((a) => a.s).sort((a, b) => b - a), tot = d3.sum(gp) || 1;
+    let cum = 0, nA = 0; for (const v of gp) { if (cum / tot >= 0.8) break; cum += v; nA++; }
+    const gm = group(all, (i) => C.mk[i], M.markets.length).map((a, k) => ({ l: M.markets[k], s: a.s, m: a.s ? a.p / a.s : 0 })).filter((d) => d.s).sort((a, b) => b.s - a.s);
+    const gb = group(all, (i) => C.bd[i], 5);
+    const lfl17 = kpi(rowsYearLfl(2017)), lfl16 = kpi(rowsYearLfl(2016));
+    const items = [
+      `<b>Scale:</b> $${fmtM(K.sales)} sales and $${fmtM(K.profit)} profit (${pct(K.margin, 2)} margin) from ${fmtN(K.orders)} orders and ${fmtN(K.customers)} customers.`,
+      worst ? `<b>Delivery is the #1 operational issue:</b> ${pct(K.late)} of shipped lines arrive late. ${worst.l} is worst: it promises ${worst.s.toFixed(0)} day(s) but takes ${worst.r.toFixed(1)} (${pct(worst.late, 0)} late).` : "",
+      `<b>Fix the promise before the process:</b> Standard Class meets its 4-day SLA, but premium modes (First and Second Class) miss theirs. Re-setting premium SLAs to real capability (2 and 4 days) would remove most "late" flags at zero cost.`,
+      `<b>Product concentration:</b> ${nA} products generate 80% of sales. Protect their stock availability first (A-class inventory policy).`,
+      gm.length ? `<b>Markets:</b> ${gm[0].l} leads with $${fmtM(gm[0].s)} (${pct(gm[0].m)} margin). Margins are similar everywhere (≈10–11%), so growth, not pricing, separates markets.` : "",
+      `<b>Discounts erode margin:</b> margin falls from ${pct(gb[0].s ? gb[0].p / gb[0].s : 0)} at 0–4% discount to ${pct(gb[4].s ? gb[4].p / gb[4].s : 0)} at 20–25%. Cap deep discounts to the A-class products that need volume.`,
+      `<b>Like-for-like growth is positive:</b> Jan–Sep 2017 sales are ${(lfl16.sales ? (lfl17.sales / lfl16.sales - 1) * 100 : 0).toFixed(1)}% vs Jan–Sep 2016. The full-year decline comes from the Q4-2017 data change, not weaker demand.`,
+      `<b>Fraud risk sits in bank transfers:</b> all suspected-fraud orders use the TRANSFER payment type (~8% of transfer orders). Add a verification step for transfers above a threshold.`,
+    ].filter(Boolean);
+    document.getElementById("ins").innerHTML = items.map((t) => `<li>${t}</li>`).join("");
+  }
+  function rowsYearLfl(y) { const keep = S.lfl; S.lfl = true; memoKey = ""; const r = rows("", y); S.lfl = keep; memoKey = ""; return r; }
+
+  // ---------- controls ----------
+  function fill(id, label, list, key) {
+    const s = document.getElementById(id);
+    s.innerHTML = `<option value="">${label}</option>` + list.map((v, k) => `<option value="${k}">${v}</option>`).join("");
+    s.onchange = () => { S[key] = s.value === "" ? null : +s.value; render(); };
+  }
+  fill("f-market", "All markets", M.markets, "market");
+  fill("f-segment", "All segments", M.segments, "segment");
+  fill("f-mode", "All shipping", M.modes, "mode");
+  fill("f-dept", "All depts", DEPTS, "dept");
+  document.querySelectorAll("#tabs button").forEach((b) => (b.onclick = () => { S.page = b.dataset.p; render(); }));
+  document.querySelectorAll("#years button").forEach((b) => (b.onclick = () => { S.year = b.dataset.y ? +b.dataset.y : null; render(); }));
+  document.querySelectorAll("#metric button").forEach((b) => (b.onclick = () => { S.metric = b.dataset.m; render(); }));
+  document.getElementById("lfl").onchange = (e) => { S.lfl = e.target.checked; render(); };
+  document.getElementById("reset").onclick = () => { Object.assign(S, { year: null, lfl: false, market: null, segment: null, mode: null, dept: null, cat: null, product: null, region: null, status: null }); render(); };
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(render, 150); });
+
+  render();
+  document.getElementById("loading").remove();
+  window.__ready = true;
+})();
+</script>
+</body>
+</html>

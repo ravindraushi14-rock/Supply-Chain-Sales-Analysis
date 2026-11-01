@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Secrets: never commit passwords
+.env
+
+# Large or rebuilt data (run python/run_pipeline.py)
+data/raw/*.csv
+data/clean/*.csv
+!data/clean/cleaning_log.csv
+outputs/exports/
+
+# Power BI project: local cache and user settings
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
+
+# Windows
+Thumbs.db
+desktop.ini

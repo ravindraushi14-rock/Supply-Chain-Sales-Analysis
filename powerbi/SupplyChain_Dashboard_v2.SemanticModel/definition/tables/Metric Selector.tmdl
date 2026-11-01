@@ -1,0 +1,44 @@
+table 'Metric Selector'
+	lineageTag: 3c8dd03b-d0fd-4018-8880-3ece839b8c46
+
+	column 'Metric Selector'
+		dataType: string
+		lineageTag: 642b3947-0417-4ae3-8bc6-45d2dc9df698
+		summarizeBy: none
+		sourceColumn: [Value1]
+		sortByColumn: 'Metric Selector Order'
+
+		relatedColumnDetails
+			groupByColumn: 'Metric Selector Fields'
+
+	column 'Metric Selector Fields'
+		dataType: string
+		isHidden
+		lineageTag: 1fe2058c-f384-4f8c-a64d-dfc8d02d3170
+		summarizeBy: none
+		sourceColumn: [Value2]
+
+		extendedProperty ParameterMetadata =
+				{
+				  "version": 3,
+				  "kind": 2
+				}
+
+	column 'Metric Selector Order'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: f931d4f4-49a3-4304-94b9-f4d6d4d29919
+		summarizeBy: none
+		sourceColumn: [Value3]
+
+	partition 'Metric Selector' = calculated
+		mode: import
+		source =
+				{
+				    ("Sales", NAMEOF('_Measures'[Total Sales]), 0),
+				    ("Profit", NAMEOF('_Measures'[Total Profit]), 1),
+				    ("Orders", NAMEOF('_Measures'[Total Orders]), 2),
+				    ("Late %", NAMEOF('_Measures'[Late %]), 3)
+				}
+

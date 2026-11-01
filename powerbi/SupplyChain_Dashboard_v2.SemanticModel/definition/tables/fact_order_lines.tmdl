@@ -1,0 +1,263 @@
+table fact_order_lines
+	lineageTag: 4ade07e8-7bd5-4f4c-938a-32209520f3bb
+
+	column order_item_id
+		dataType: int64
+		formatString: 0
+		lineageTag: f9b2bd8d-9224-4a5e-b05a-adff81b020fe
+		summarizeBy: none
+		sourceColumn: order_item_id
+
+	column order_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 642d8bd7-c97e-4c5c-8cf3-8d2cff043a10
+		summarizeBy: none
+		sourceColumn: order_id
+
+	column customer_id
+		dataType: int64
+		formatString: 0
+		lineageTag: aa63fe9e-0b0c-4519-9d79-8872d1126384
+		summarizeBy: none
+		sourceColumn: customer_id
+
+	column product_id
+		dataType: int64
+		formatString: 0
+		lineageTag: bb978088-b428-4f4b-94d4-130f2529102d
+		summarizeBy: none
+		sourceColumn: product_id
+
+	column order_day
+		dataType: dateTime
+		formatString: dd-MM-yyyy
+		lineageTag: 81a51880-4dff-4713-94c1-4fc0490191ee
+		summarizeBy: none
+		sourceColumn: order_day
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column year
+		dataType: int64
+		formatString: 0
+		lineageTag: 5ed1fc3e-0f01-469d-a4a6-b741de94f8d9
+		summarizeBy: none
+		sourceColumn: year
+
+	column month
+		dataType: string
+		lineageTag: 5aeb29af-253f-4420-b7b1-e4368d3b0f9f
+		summarizeBy: none
+		sourceColumn: month
+
+	column payment_type
+		dataType: string
+		lineageTag: 6e09792b-d754-4027-87f4-c7f3a05b5d90
+		summarizeBy: none
+		sourceColumn: payment_type
+
+	column order_status
+		dataType: string
+		lineageTag: 05cd2ee9-15d8-4b91-bfdc-a7c98e25fca2
+		summarizeBy: none
+		sourceColumn: order_status
+
+	column shipping_mode
+		dataType: string
+		lineageTag: 4fe1edd1-1502-41ec-9324-48b5a5fa942f
+		summarizeBy: none
+		sourceColumn: shipping_mode
+
+	column delivery_status
+		dataType: string
+		lineageTag: a1e94195-3954-4af8-9115-d9a139db5b54
+		summarizeBy: none
+		sourceColumn: delivery_status
+
+	column days_real
+		dataType: int64
+		formatString: 0
+		lineageTag: cb6e3321-b892-4e4e-8c50-716b2d9d62c4
+		summarizeBy: none
+		sourceColumn: days_real
+
+	column days_scheduled
+		dataType: int64
+		formatString: 0
+		lineageTag: 2e60dd8f-954d-492a-bf68-f893b7d182b5
+		summarizeBy: none
+		sourceColumn: days_scheduled
+
+	column sla_gap_days
+		dataType: int64
+		formatString: 0
+		lineageTag: 6801f494-1993-4759-9d35-1366755044cb
+		summarizeBy: none
+		sourceColumn: sla_gap_days
+
+	column is_shipped
+		dataType: boolean
+		lineageTag: c5e2c0a3-5e22-4e66-a564-b79500b9ab7d
+		summarizeBy: none
+		sourceColumn: is_shipped
+
+	column is_suspected_fraud
+		dataType: boolean
+		lineageTag: ccf84e31-888f-426c-864a-7b591b6b0a6f
+		summarizeBy: none
+		sourceColumn: is_suspected_fraud
+
+	column is_late
+		dataType: boolean
+		lineageTag: a87943ec-077f-4806-be54-4069a33480b4
+		summarizeBy: none
+		sourceColumn: is_late
+
+	column is_on_time
+		dataType: boolean
+		lineageTag: 19f6e4ef-f7f0-4864-8771-23fafdbbed5f
+		summarizeBy: none
+		sourceColumn: is_on_time
+
+	column market
+		dataType: string
+		lineageTag: b1eb39ed-a9ff-4ab5-a4b0-fbade038b79e
+		summarizeBy: none
+		sourceColumn: market
+
+	column order_region
+		dataType: string
+		lineageTag: 0c9c8df8-6223-4b86-8744-a9af3855e6a8
+		summarizeBy: none
+		sourceColumn: order_region
+
+	column order_country
+		dataType: string
+		lineageTag: 6ec7ad69-5f52-42e8-943a-06f8f3933341
+		summarizeBy: none
+		sourceColumn: order_country
+
+	column quantity
+		dataType: int64
+		formatString: 0
+		lineageTag: 1bc2ab69-6b27-43b0-bd11-b8465ae8a603
+		summarizeBy: sum
+		sourceColumn: quantity
+
+	column sales
+		dataType: double
+		formatString: #,0.00
+		lineageTag: 2aff4ea5-01f3-413b-bfb0-95715ff4d716
+		summarizeBy: sum
+		sourceColumn: sales
+
+	column discount
+		dataType: double
+		formatString: #,0.00
+		lineageTag: b6fa6a1b-ebd8-491a-9b7c-e7714fbc8f10
+		summarizeBy: sum
+		sourceColumn: discount
+
+	column discount_rate
+		dataType: double
+		formatString: 0.0%
+		lineageTag: 42ea7273-da70-41fe-a9a3-ac3cd7c5918a
+		summarizeBy: none
+		sourceColumn: discount_rate
+
+	column net_sales
+		dataType: double
+		formatString: #,0.00
+		lineageTag: f5d5ce84-df67-452c-94c7-0a4c4b9db815
+		summarizeBy: sum
+		sourceColumn: net_sales
+
+	column profit
+		dataType: double
+		formatString: #,0.00
+		lineageTag: 8e05e03f-75aa-467a-83d8-f6e5008fb343
+		summarizeBy: sum
+		sourceColumn: profit
+
+	column customer_segment
+		dataType: string
+		lineageTag: 30897d9d-039a-4cd5-95c6-7b34d0f5cb87
+		summarizeBy: none
+		sourceColumn: customer_segment
+
+	column customer_state
+		dataType: string
+		lineageTag: e721df32-6635-43d1-94b4-1b42d98604b4
+		summarizeBy: none
+		sourceColumn: customer_state
+
+	column product_name
+		dataType: string
+		lineageTag: 15061bea-ecf5-4bcb-a8b9-fa5e3fec4a8d
+		summarizeBy: none
+		sourceColumn: product_name
+
+	column category_name
+		dataType: string
+		lineageTag: 505e81e8-9a7e-4037-9e28-55b8617049ad
+		summarizeBy: none
+		sourceColumn: category_name
+
+	column department_name
+		dataType: string
+		lineageTag: e20f039a-51d2-4011-a1b8-d5872b53e189
+		summarizeBy: none
+		sourceColumn: department_name
+
+	column discount_band
+		dataType: string
+		lineageTag: 06f42177-ae32-43b4-943a-8d3608ec749e
+		summarizeBy: none
+		sourceColumn: discount_band
+
+	partition fact_order_lines = m
+		mode: import
+		source =
+				let
+				    // Same server and database you open in pgAdmin (created by python/run_pipeline.py)
+				    Source = PostgreSQL.Database("localhost", "supply_chain_db"),
+				    Fact = Source{[Schema = "public", Item = "v_fact_order_lines"]}[Data],
+				    Kept = Table.SelectColumns(Fact, {"order_item_id", "order_id", "customer_id", "product_id", "order_day", "year", "month", "payment_type", "order_status", "shipping_mode", "delivery_status", "days_real", "days_scheduled", "sla_gap_days", "is_shipped", "is_suspected_fraud", "is_late", "is_on_time", "market", "order_region", "order_country", "quantity", "sales", "discount", "discount_rate", "net_sales", "profit", "customer_segment", "customer_state", "product_name", "category_name", "department_name", "discount_band"}),
+				    Typed = Table.TransformColumnTypes(Kept, {
+				        {"order_item_id", Int64.Type},
+				        {"order_id", Int64.Type},
+				        {"customer_id", Int64.Type},
+				        {"product_id", Int64.Type},
+				        {"order_day", type date},
+				        {"year", Int64.Type},
+				        {"month", type text},
+				        {"payment_type", type text},
+				        {"order_status", type text},
+				        {"shipping_mode", type text},
+				        {"delivery_status", type text},
+				        {"days_real", Int64.Type},
+				        {"days_scheduled", Int64.Type},
+				        {"sla_gap_days", Int64.Type},
+				        {"is_shipped", type logical},
+				        {"is_suspected_fraud", type logical},
+				        {"is_late", type logical},
+				        {"is_on_time", type logical},
+				        {"market", type text},
+				        {"order_region", type text},
+				        {"order_country", type text},
+				        {"quantity", Int64.Type},
+				        {"sales", type number},
+				        {"discount", type number},
+				        {"discount_rate", type number},
+				        {"net_sales", type number},
+				        {"profit", type number},
+				        {"customer_segment", type text},
+				        {"customer_state", type text},
+				        {"product_name", type text},
+				        {"category_name", type text},
+				        {"department_name", type text},
+				        {"discount_band", type text}
+				    })
+				in
+				    Typed

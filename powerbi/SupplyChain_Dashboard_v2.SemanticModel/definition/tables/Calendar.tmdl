@@ -1,0 +1,60 @@
+table Calendar
+	lineageTag: 70cbb5ae-566d-48e3-bc59-de84c7e9d92e
+	dataCategory: Time
+
+	column Date
+		dataType: dateTime
+		isKey
+		formatString: dd-MM-yyyy
+		lineageTag: 5972f3a7-f978-4a14-9226-77d323e2d549
+		summarizeBy: none
+		sourceColumn: [Date]
+
+	column Year
+		dataType: int64
+		formatString: 0
+		lineageTag: 116f1099-cbba-4fe8-b886-61f51bffa5ef
+		summarizeBy: none
+		sourceColumn: [Year]
+
+	column Month
+		dataType: string
+		lineageTag: 6d077546-2f7c-4fb9-82d9-5122d8b95d99
+		summarizeBy: none
+		sourceColumn: [Month]
+		sortByColumn: MonthNo
+
+	column MonthNo
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 287a5a46-060b-45b7-bfd6-d56350030b5c
+		summarizeBy: none
+		sourceColumn: [MonthNo]
+
+	column Quarter
+		dataType: string
+		lineageTag: a2dcc3cf-196a-485b-bf6a-4ca41ba7b718
+		summarizeBy: none
+		sourceColumn: [Quarter]
+
+	column Period
+		dataType: string
+		lineageTag: 332f4627-f666-43b4-9e94-f90823e6d8c6
+		summarizeBy: none
+		sourceColumn: [Period]
+
+	partition Calendar = calculated
+		mode: import
+		source =
+				-- 2015-2017 reporting scope. Period lets you compare Jan-Sep like-for-like
+				-- (from Oct 2017 the data changes shape: one item per order, new customers only)
+				ADDCOLUMNS(
+				    CALENDAR(DATE(2015, 1, 1), DATE(2017, 12, 31)),
+				    "Year", YEAR([Date]),
+				    "Month", FORMAT([Date], "MMM yyyy"),
+				    "MonthNo", YEAR([Date]) * 100 + MONTH([Date]),
+				    "Quarter", "Q" & QUARTER([Date]),
+				    "Period", IF(MONTH([Date]) <= 9, "Jan-Sep", "Oct-Dec")
+				)
+

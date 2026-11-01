@@ -1,0 +1,4 @@
+relationship b54c91e4-a80d-46c6-9685-fa78764b6f66
+	fromColumn: fact_order_lines.order_day
+	toColumn: Calendar.Date
+

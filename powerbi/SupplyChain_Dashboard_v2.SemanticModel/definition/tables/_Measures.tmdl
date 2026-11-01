@@ -1,0 +1,359 @@
+table _Measures
+	lineageTag: bc2b4b75-570a-414f-afbb-49d534269745
+
+	measure 'Total Sales' = SUM(fact_order_lines[sales])
+		formatString: $#,0
+		displayFolder: Core
+		lineageTag: f1aa5ed2-ac83-4a40-9841-89fb70f5403f
+
+	measure 'Sales ($M)' = DIVIDE([Total Sales], 1000000)
+		formatString: #,0.00
+		displayFolder: Core
+		lineageTag: a3a34660-540b-4006-9cdc-e8d39723c3c4
+
+	measure 'Total Profit' = SUM(fact_order_lines[profit])
+		formatString: $#,0
+		displayFolder: Core
+		lineageTag: dbb9af33-4420-4dbb-8a0d-c2475b4cb2dc
+
+	measure 'Profit ($M)' = DIVIDE([Total Profit], 1000000)
+		formatString: #,0.00
+		displayFolder: Core
+		lineageTag: 979e7acf-d237-47f7-80f9-51ad05e884e8
+
+	measure 'Profit Margin %' = DIVIDE([Total Profit], [Total Sales])
+		formatString: 0.00%
+		displayFolder: Core
+		lineageTag: 6e08fd55-feca-41bf-94b9-50b056a4a133
+
+	measure 'Total Orders' = DISTINCTCOUNT(fact_order_lines[order_id])
+		formatString: #,0
+		displayFolder: Core
+		lineageTag: 1fcc6e2b-e916-40a7-b6ac-45001695bd66
+
+	measure 'Total Customers' = DISTINCTCOUNT(fact_order_lines[customer_id])
+		formatString: #,0
+		displayFolder: Core
+		lineageTag: 5125c391-03a5-40c2-9b20-4400e28f8ddc
+
+	measure 'Avg Order Value' = DIVIDE([Total Sales], [Total Orders])
+		formatString: $#,0
+		displayFolder: Core
+		lineageTag: f44c6668-5500-4e8c-8d79-a21fdcddfcf1
+
+	measure 'Units Sold' = SUM(fact_order_lines[quantity])
+		formatString: #,0
+		displayFolder: Core
+		lineageTag: 7b761572-a5d1-42b9-933a-a45c30e1e71f
+
+	measure 'Avg Discount %' = AVERAGE(fact_order_lines[discount_rate])
+		formatString: 0.0%
+		displayFolder: Core
+		lineageTag: 6d256d34-d374-444a-bec1-965e869edcc8
+
+	measure 'Shipped Lines' = CALCULATE(COUNTROWS(fact_order_lines), fact_order_lines[is_shipped] = TRUE())
+		formatString: #,0
+		displayFolder: Delivery
+		lineageTag: 86a59964-c18e-49ce-81b4-d0f3d2969832
+
+	measure 'Late %' = DIVIDE(CALCULATE(COUNTROWS(fact_order_lines), fact_order_lines[is_shipped] = TRUE(), fact_order_lines[is_late] = TRUE()), [Shipped Lines])
+		formatString: 0.0%
+		displayFolder: Delivery
+		lineageTag: faee2fdb-6c51-4e7e-995a-05387884182f
+
+	measure 'On-Time %' = DIVIDE(CALCULATE(COUNTROWS(fact_order_lines), fact_order_lines[is_shipped] = TRUE(), fact_order_lines[is_on_time] = TRUE()), [Shipped Lines])
+		formatString: 0.0%
+		displayFolder: Delivery
+		lineageTag: cf5e6941-935b-4e72-8087-812df32d8cb5
+
+	measure 'Avg Lead Time (Days)' = CALCULATE(AVERAGE(fact_order_lines[days_real]), fact_order_lines[is_shipped] = TRUE())
+		formatString: 0.00
+		displayFolder: Delivery
+		lineageTag: 6da54333-0ca5-4efc-bb05-1c90f271064f
+
+	measure 'Avg Promised Days' = CALCULATE(AVERAGE(fact_order_lines[days_scheduled]), fact_order_lines[is_shipped] = TRUE())
+		formatString: 0.00
+		displayFolder: Delivery
+		lineageTag: 9c919ba1-e978-4b7f-a08e-434eab85aaa8
+
+	measure 'Avg SLA Gap (Days)' = [Avg Lead Time (Days)] - [Avg Promised Days]
+		formatString: +0.00;-0.00;0.00
+		displayFolder: Delivery
+		lineageTag: 59a52608-8e1a-43d1-9ed3-77973c541b8e
+
+	measure 'Late Sales' = CALCULATE([Total Sales], fact_order_lines[is_shipped] = TRUE(), fact_order_lines[is_late] = TRUE())
+		formatString: $#,0
+		displayFolder: Delivery
+		lineageTag: e3e84013-17a6-4bc0-9f6e-1974b3b1d65b
+
+	measure 'Fraud Orders' = CALCULATE([Total Orders], fact_order_lines[is_suspected_fraud] = TRUE())
+		formatString: #,0
+		displayFolder: Risk
+		lineageTag: 3f463b0a-f598-4d0e-b44b-54caf35c7028
+
+	measure 'Fraud Rate %' = DIVIDE([Fraud Orders], [Total Orders])
+		formatString: 0.0%
+		displayFolder: Risk
+		lineageTag: bfba28b0-302b-4113-b49e-e36410b9fab9
+
+	measure 'Loss-Making Customers' = COUNTROWS(FILTER(VALUES(fact_order_lines[customer_id]), [Total Profit] < 0))
+		formatString: #,0
+		displayFolder: Risk
+		lineageTag: 6367ed18-221f-4d0e-bde9-2ad370df138a
+
+	measure 'Loss Customers Profit' = SUMX(FILTER(VALUES(fact_order_lines[customer_id]), [Total Profit] < 0), [Total Profit])
+		formatString: $#,0
+		displayFolder: Risk
+		lineageTag: 610106f4-95bd-4b54-bb9d-59680584cd0f
+
+	measure 'Loss Customers %' = DIVIDE([Loss-Making Customers], [Total Customers])
+		formatString: 0.0%
+		displayFolder: Risk
+		lineageTag: 9f1617f7-6acb-44c9-8192-8e26e7289414
+
+	measure 'Sales YoY' =
+			VAR _LastDay = MAX(fact_order_lines[order_day])
+			VAR _YearStart = DATE(YEAR(_LastDay), 1, 1)
+			VAR _Cur = CALCULATE([Total Sales], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], _YearStart, _LastDay))
+			VAR _Prev = CALCULATE([Total Sales], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], EDATE(_YearStart, -12), EDATE(_LastDay, -12)))
+			RETURN DIVIDE(_Cur - _Prev, _Prev)
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Growth
+		lineageTag: 616207f8-b1d7-4488-a68a-538acb6bb3b6
+
+	measure 'Sales YoY Label' =
+			VAR _y = [Sales YoY]
+			RETURN IF(ISBLANK(_y), "No prior year to compare",
+			    IF(_y >= 0, "▲ +", "▼ ") & FORMAT(ABS(_y), "0.0%") & " vs last year")
+		displayFolder: Growth\Card labels
+		lineageTag: f20a2d23-e32a-43d2-85e4-25fc6c90c29f
+
+	measure 'Sales YoY Color' =
+			VAR _y = [Sales YoY]
+			RETURN IF(ISBLANK(_y), "#9DB2CE", IF(_y >= 0, "#4CD38F", "#FF6B61"))
+		displayFolder: Growth\Card labels
+		lineageTag: 48357b8e-3ccc-411c-969f-df07b1a91202
+
+	measure 'Profit YoY' =
+			VAR _LastDay = MAX(fact_order_lines[order_day])
+			VAR _YearStart = DATE(YEAR(_LastDay), 1, 1)
+			VAR _Cur = CALCULATE([Total Profit], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], _YearStart, _LastDay))
+			VAR _Prev = CALCULATE([Total Profit], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], EDATE(_YearStart, -12), EDATE(_LastDay, -12)))
+			RETURN DIVIDE(_Cur - _Prev, _Prev)
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Growth
+		lineageTag: b3b5fad7-a5bc-4e99-b828-ea5003d0bdfc
+
+	measure 'Profit YoY Label' =
+			VAR _y = [Profit YoY]
+			RETURN IF(ISBLANK(_y), "No prior year to compare",
+			    IF(_y >= 0, "▲ +", "▼ ") & FORMAT(ABS(_y), "0.0%") & " vs last year")
+		displayFolder: Growth\Card labels
+		lineageTag: 3fafbb04-cd1e-4718-b137-1384df24ef7c
+
+	measure 'Profit YoY Color' =
+			VAR _y = [Profit YoY]
+			RETURN IF(ISBLANK(_y), "#9DB2CE", IF(_y >= 0, "#4CD38F", "#FF6B61"))
+		displayFolder: Growth\Card labels
+		lineageTag: 4a26131c-11b6-495f-bbf0-536f756b76d6
+
+	measure 'Margin YoY' =
+			VAR _LastDay = MAX(fact_order_lines[order_day])
+			VAR _YearStart = DATE(YEAR(_LastDay), 1, 1)
+			VAR _Cur = CALCULATE([Profit Margin %], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], _YearStart, _LastDay))
+			VAR _Prev = CALCULATE([Profit Margin %], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], EDATE(_YearStart, -12), EDATE(_LastDay, -12)))
+			RETURN IF(NOT ISBLANK(_Prev) && _Prev <> 0, _Cur - _Prev)
+		formatString: +0.00;-0.00;0.00
+		displayFolder: Growth
+		lineageTag: 8bf0ca91-dc8c-459f-b1a8-8b49f6539194
+
+	measure 'Margin YoY Label' =
+			VAR _y = [Margin YoY]
+			RETURN IF(ISBLANK(_y), "No prior year to compare",
+			    IF(_y >= 0, "▲ +", "▼ ") & FORMAT(ABS(_y) * 100, "0.0") & " pts" & " vs last year")
+		displayFolder: Growth\Card labels
+		lineageTag: 4f62cdf5-d036-4921-a56a-6aed4a4bb12c
+
+	measure 'Margin YoY Color' =
+			VAR _y = [Margin YoY]
+			RETURN IF(ISBLANK(_y), "#9DB2CE", IF(_y >= 0, "#4CD38F", "#FF6B61"))
+		displayFolder: Growth\Card labels
+		lineageTag: 9443a1b0-bc1c-47d8-98d5-5f25844ac973
+
+	measure 'Orders YoY' =
+			VAR _LastDay = MAX(fact_order_lines[order_day])
+			VAR _YearStart = DATE(YEAR(_LastDay), 1, 1)
+			VAR _Cur = CALCULATE([Total Orders], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], _YearStart, _LastDay))
+			VAR _Prev = CALCULATE([Total Orders], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], EDATE(_YearStart, -12), EDATE(_LastDay, -12)))
+			RETURN DIVIDE(_Cur - _Prev, _Prev)
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Growth
+		lineageTag: 7df843ba-2cab-43de-9494-48510271fbf5
+
+	measure 'Orders YoY Label' =
+			VAR _y = [Orders YoY]
+			RETURN IF(ISBLANK(_y), "No prior year to compare",
+			    IF(_y >= 0, "▲ +", "▼ ") & FORMAT(ABS(_y), "0.0%") & " vs last year")
+		displayFolder: Growth\Card labels
+		lineageTag: f5d533ce-7c70-4b74-bbd7-084d0863a506
+
+	measure 'Orders YoY Color' =
+			VAR _y = [Orders YoY]
+			RETURN IF(ISBLANK(_y), "#9DB2CE", IF(_y >= 0, "#4CD38F", "#FF6B61"))
+		displayFolder: Growth\Card labels
+		lineageTag: 2236c980-190b-403e-b888-9d49408eb8fd
+
+	measure 'Customers YoY' =
+			VAR _LastDay = MAX(fact_order_lines[order_day])
+			VAR _YearStart = DATE(YEAR(_LastDay), 1, 1)
+			VAR _Cur = CALCULATE([Total Customers], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], _YearStart, _LastDay))
+			VAR _Prev = CALCULATE([Total Customers], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], EDATE(_YearStart, -12), EDATE(_LastDay, -12)))
+			RETURN DIVIDE(_Cur - _Prev, _Prev)
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Growth
+		lineageTag: d853bd54-aba2-4095-bd90-fb2c5325fda9
+
+	measure 'Customers YoY Label' =
+			VAR _y = [Customers YoY]
+			RETURN IF(ISBLANK(_y), "No prior year to compare",
+			    IF(_y >= 0, "▲ +", "▼ ") & FORMAT(ABS(_y), "0.0%") & " vs last year")
+		displayFolder: Growth\Card labels
+		lineageTag: 247deea1-7568-462b-9b12-4c9cd94655c6
+
+	measure 'Customers YoY Color' =
+			VAR _y = [Customers YoY]
+			RETURN IF(ISBLANK(_y), "#9DB2CE", IF(_y >= 0, "#4CD38F", "#FF6B61"))
+		displayFolder: Growth\Card labels
+		lineageTag: 1e9d0796-f11f-4855-b1e6-e054fed138b2
+
+	measure 'AOV YoY' =
+			VAR _LastDay = MAX(fact_order_lines[order_day])
+			VAR _YearStart = DATE(YEAR(_LastDay), 1, 1)
+			VAR _Cur = CALCULATE([Avg Order Value], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], _YearStart, _LastDay))
+			VAR _Prev = CALCULATE([Avg Order Value], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], EDATE(_YearStart, -12), EDATE(_LastDay, -12)))
+			RETURN DIVIDE(_Cur - _Prev, _Prev)
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Growth
+		lineageTag: f6bd454a-41be-41a5-a730-5277a402fe5f
+
+	measure 'AOV YoY Label' =
+			VAR _y = [AOV YoY]
+			RETURN IF(ISBLANK(_y), "No prior year to compare",
+			    IF(_y >= 0, "▲ +", "▼ ") & FORMAT(ABS(_y), "0.0%") & " vs last year")
+		displayFolder: Growth\Card labels
+		lineageTag: 7df555a8-ea94-4399-af35-7748ad491a78
+
+	measure 'AOV YoY Color' =
+			VAR _y = [AOV YoY]
+			RETURN IF(ISBLANK(_y), "#9DB2CE", IF(_y >= 0, "#4CD38F", "#FF6B61"))
+		displayFolder: Growth\Card labels
+		lineageTag: de79db96-bfd7-4c60-a966-a618b6860b52
+
+	measure 'On-Time YoY' =
+			VAR _LastDay = MAX(fact_order_lines[order_day])
+			VAR _YearStart = DATE(YEAR(_LastDay), 1, 1)
+			VAR _Cur = CALCULATE([On-Time %], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], _YearStart, _LastDay))
+			VAR _Prev = CALCULATE([On-Time %], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], EDATE(_YearStart, -12), EDATE(_LastDay, -12)))
+			RETURN IF(NOT ISBLANK(_Prev) && _Prev <> 0, _Cur - _Prev)
+		formatString: +0.00;-0.00;0.00
+		displayFolder: Growth
+		lineageTag: 1fbd9405-492f-49f9-9713-330cb5ea6348
+
+	measure 'On-Time YoY Label' =
+			VAR _y = [On-Time YoY]
+			RETURN IF(ISBLANK(_y), "No prior year to compare",
+			    IF(_y >= 0, "▲ +", "▼ ") & FORMAT(ABS(_y) * 100, "0.0") & " pts" & " vs last year")
+		displayFolder: Growth\Card labels
+		lineageTag: ff7b932c-57ad-4a20-9092-19dce2455a93
+
+	measure 'On-Time YoY Color' =
+			VAR _y = [On-Time YoY]
+			RETURN IF(ISBLANK(_y), "#9DB2CE", IF(_y >= 0, "#4CD38F", "#FF6B61"))
+		displayFolder: Growth\Card labels
+		lineageTag: 77a97d2b-2a2e-485a-85f1-3271015e65ef
+
+	measure 'Late YoY' =
+			VAR _LastDay = MAX(fact_order_lines[order_day])
+			VAR _YearStart = DATE(YEAR(_LastDay), 1, 1)
+			VAR _Cur = CALCULATE([Late %], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], _YearStart, _LastDay))
+			VAR _Prev = CALCULATE([Late %], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], EDATE(_YearStart, -12), EDATE(_LastDay, -12)))
+			RETURN IF(NOT ISBLANK(_Prev) && _Prev <> 0, _Cur - _Prev)
+		formatString: +0.00;-0.00;0.00
+		displayFolder: Growth
+		lineageTag: bd394b29-73fc-4718-bda8-07c45dcf0570
+
+	measure 'Late YoY Label' =
+			VAR _y = [Late YoY]
+			RETURN IF(ISBLANK(_y), "No prior year to compare",
+			    IF(_y >= 0, "▲ +", "▼ ") & FORMAT(ABS(_y) * 100, "0.0") & " pts" & " vs last year")
+		displayFolder: Growth\Card labels
+		lineageTag: d4ea753a-12b4-47a1-be88-b5d3b2375847
+
+	measure 'Late YoY Color' =
+			VAR _y = [Late YoY]
+			RETURN IF(ISBLANK(_y), "#9DB2CE", IF(_y <= 0, "#4CD38F", "#FF6B61"))
+		displayFolder: Growth\Card labels
+		lineageTag: 2a2bef7d-e2be-4371-b0f3-5d8a32468e84
+
+	measure 'Lead Time YoY' =
+			VAR _LastDay = MAX(fact_order_lines[order_day])
+			VAR _YearStart = DATE(YEAR(_LastDay), 1, 1)
+			VAR _Cur = CALCULATE([Avg Lead Time (Days)], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], _YearStart, _LastDay))
+			VAR _Prev = CALCULATE([Avg Lead Time (Days)], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], EDATE(_YearStart, -12), EDATE(_LastDay, -12)))
+			RETURN IF(NOT ISBLANK(_Prev) && _Prev <> 0, _Cur - _Prev)
+		formatString: +0.00;-0.00;0.00
+		displayFolder: Growth
+		lineageTag: e8a11a32-2144-4ba0-88a5-54cde5ddd19c
+
+	measure 'Lead Time YoY Label' =
+			VAR _y = [Lead Time YoY]
+			RETURN IF(ISBLANK(_y), "No prior year to compare",
+			    IF(_y >= 0, "▲ +", "▼ ") & FORMAT(ABS(_y), "0.00") & " days" & " vs last year")
+		displayFolder: Growth\Card labels
+		lineageTag: 9025041d-e883-41bd-a16f-c0b51d641966
+
+	measure 'Lead Time YoY Color' =
+			VAR _y = [Lead Time YoY]
+			RETURN IF(ISBLANK(_y), "#9DB2CE", IF(_y <= 0, "#4CD38F", "#FF6B61"))
+		displayFolder: Growth\Card labels
+		lineageTag: 31e66b26-061e-41d3-92e1-2add7d6b271e
+
+	measure 'Fraud YoY' =
+			VAR _LastDay = MAX(fact_order_lines[order_day])
+			VAR _YearStart = DATE(YEAR(_LastDay), 1, 1)
+			VAR _Cur = CALCULATE([Fraud Rate %], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], _YearStart, _LastDay))
+			VAR _Prev = CALCULATE([Fraud Rate %], REMOVEFILTERS('Calendar'), DATESBETWEEN('Calendar'[Date], EDATE(_YearStart, -12), EDATE(_LastDay, -12)))
+			RETURN IF(NOT ISBLANK(_Prev) && _Prev <> 0, _Cur - _Prev)
+		formatString: +0.00;-0.00;0.00
+		displayFolder: Growth
+		lineageTag: 96ee7533-b205-4434-8747-61d5d1af734b
+
+	measure 'Fraud YoY Label' =
+			VAR _y = [Fraud YoY]
+			RETURN IF(ISBLANK(_y), "No prior year to compare",
+			    IF(_y >= 0, "▲ +", "▼ ") & FORMAT(ABS(_y) * 100, "0.0") & " pts" & " vs last year")
+		displayFolder: Growth\Card labels
+		lineageTag: 598c2447-9fa5-46fe-aa80-31d1bd924809
+
+	measure 'Fraud YoY Color' =
+			VAR _y = [Fraud YoY]
+			RETURN IF(ISBLANK(_y), "#9DB2CE", IF(_y <= 0, "#4CD38F", "#FF6B61"))
+		displayFolder: Growth\Card labels
+		lineageTag: 76a3dd5a-3a20-4530-a368-7ff282e595ae
+
+	measure 'Report Subtitle' =
+			VAR _y = SELECTEDVALUE('Calendar'[Year], "2015-2017")
+			RETURN "Showing " & _y & "  |  " & FORMAT([Total Sales] / 1000000, "$#,0.00") & "M sales  |  " & FORMAT([Late %], "0.0%") & " late  |  " & FORMAT([Total Orders], "#,0") & " orders"
+		displayFolder: Labels
+		lineageTag: e18b0668-e37f-4d3c-8c7d-595f8c9274a5
+
+	column Column
+		dataType: string
+		isHidden
+		lineageTag: 90e34960-215a-43dd-b6fd-9a42e55f6241
+		summarizeBy: none
+		sourceColumn: [Column]
+
+	partition _Measures = calculated
+		mode: import
+		source = ROW("Column", "")

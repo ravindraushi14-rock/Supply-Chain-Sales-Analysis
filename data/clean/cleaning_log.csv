@@ -1,0 +1,9 @@
+step,problem,rows_affected,action
+F1,Duplicate columns,6,"dropped the copy, kept one of each pair"
+F2,Useless or empty columns,7,"dropped: Customer Email, Customer Password, Product Description, Product Status, Product Image, Order Zipcode, Late_delivery_risk"
+F3,Column names with spaces and brackets,40,renamed to snake_case
+F4,Text with extra spaces,24640,trimmed and collapsed double spaces
+F5,Mixed date formats,361038,parsed order_date and ship_date to real datetimes
+F6,Country names in Spanish,235992,translated to English with data/reference/country_translation.csv
+F7,Missing last name / zip code,11,filled with blank (no effect on any KPI)
+F8,Business columns,180519,"added year, month, is_shipped, is_late, is_on_time, sla_gap_days, in_scope, period_flag"
