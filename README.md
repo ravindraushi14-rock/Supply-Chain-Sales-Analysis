@@ -98,7 +98,7 @@ Details: [Data quality report](docs/03_data_quality_report.md) · audit log: [`d
    pip install -r requirements.txt
    python python/run_pipeline.py     # asks for your PostgreSQL password once
    ```
-3. Open `powerbi/SupplyChain_Dashboard_v2.pbip`, sign in to `localhost / supply_chain_db` and click **Refresh**. See the [setup guide](powerbi/power_bi_setup.md).
+3. Open `powerbi/SupplyChain_Dashboard_v2.pbip` (or the original `powerbi/v1/Supply Chain & Sales Analysis.pbix`), sign in to `localhost / supply_chain_db` and click **Refresh**. See the [setup guide](powerbi/power_bi_setup.md).
 
 ## Repository structure
 
@@ -108,10 +108,10 @@ Details: [Data quality report](docs/03_data_quality_report.md) · audit log: [`d
 ├── data/reference/               Spanish → English country table
 ├── data/clean/cleaning_log.csv   audit trail of every fix
 ├── python/                       step01 … step05 + run_pipeline.py + web template
-├── sql/                          tables · 12 KPI views · 15 business questions · legacy 30-query file
-├── powerbi/                      v1 .pbix · v2 .pbip project · DAX reference · setup guide
+├── sql/                          tables · 12 KPI views · 15 business questions · legacy/ advanced queries
+├── powerbi/                      v2 .pbip project · v1/ original .pbix · setup guide
 ├── docs/                         technical documentation (Markdown)
-├── documentation/                original project reports (Word, 02–11)
+├── archive/reports_v1/           original project reports (Word 02–11, 30-query SQL, DAX reference)
 ├── screenshots/                  dashboard images
 └── outputs/                      charts and CSV copies of the views
 ```

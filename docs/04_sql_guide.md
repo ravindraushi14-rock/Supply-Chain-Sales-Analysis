@@ -46,4 +46,4 @@ Loading uses PostgreSQL **`COPY`** (bulk load), and row counts are compared afte
 | Q14 | Cost of late delivery | $19.9M of sales delivered late. Consumer $10.4M |
 | Q15 | Market × month | In most months one market has >95% of sales |
 
-The original 30-query analysis (`sql/legacy/05_DataCo_30_SQL_Business_Analyses.sql`) is kept for reference.
+The original 30-query analysis ([`archive/reports_v1/05_DataCo_30_SQL_Business_Analyses.sql`](../archive/reports_v1/05_DataCo_30_SQL_Business_Analyses.sql)) and the advanced queries ([`sql/legacy/`](../sql/legacy)) are kept for reference.

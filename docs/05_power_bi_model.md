@@ -2,7 +2,7 @@
 
 Two versions are in [`/powerbi`](../powerbi):
 
-| | v1: `Supply Chain & Sales Analysis.pbix` | v2: `SupplyChain_Dashboard_v2.pbip` |
+| | v1: `powerbi/v1/Supply Chain & Sales Analysis.pbix` | v2: `powerbi/SupplyChain_Dashboard_v2.pbip` |
 | --- | --- | --- |
 | Built | By hand in Power BI Desktop, over 100+ hours | Generated as a Power BI Project (text files, Git-friendly) |
 | Source | Raw CSV via Power Query | PostgreSQL view `v_fact_order_lines` |

@@ -10,7 +10,7 @@
 **Like-for-like:** in the *Period* slicer choose **Jan-Sep**. Every YoY label then compares January–September only.
 
 ## v1: original dashboard
-Open **`Supply Chain & Sales Analysis.pbix`**. It contains its own imported data.
+Open **`v1/Supply Chain & Sales Analysis.pbix`**. It contains its own imported data.
 
 ## Refresh routine
 New data in `data/raw/` → `python python/run_pipeline.py` → Power BI **Refresh** → VS Code **Sync Changes** (updates the live web dashboard).
