@@ -10,7 +10,7 @@
 
 ### [▶ Open the live interactive dashboard](https://ravindraushi14-rock.github.io/Supply-Chain-Sales-Analysis/)
 
-![Power BI overview](screenshots/D01_Overview.PNG)
+[![Live dashboard: Overview](screenshots/web_overview.png)](https://ravindraushi14-rock.github.io/Supply-Chain-Sales-Analysis/)
 
 </div>
 
@@ -76,17 +76,26 @@ Details: [Data quality report](docs/03_data_quality_report.md) · audit log: [`d
 
 ## Dashboards
 
-**Power BI v1: original 5-page dashboard** (100+ hours of design and DAX work)
+### 1. Live web dashboard (v2): [open it](https://ravindraushi14-rock.github.io/Supply-Chain-Sales-Analysis/)
+Five pages, click-to-filter, YoY on every KPI, and a **Jan–Sep like-for-like** toggle. It opens in any browser, with no login or software.
+
+| Overview | Delivery & SLA |
+| --- | --- |
+| ![](screenshots/web_overview.png) | ![](screenshots/web_delivery.png) |
+| **Products & Margin** | **Customers & Risk** |
+| ![](screenshots/web_products.png) | ![](screenshots/web_customers.png) |
+
+### 2. Power BI v2: Power BI Project on PostgreSQL
+Five pages: Executive Overview, Delivery & SLA, Products & Margin, Customers & Risk and Market Detail. It has 53 DAX measures, like-for-like YTD comparisons, a field-parameter metric switch and YoY labels in green and red.
+Open `powerbi/SupplyChain_Dashboard_v2.pbip` and click **Refresh** ([setup guide](powerbi/power_bi_setup.md) · [model guide](docs/05_power_bi_model.md)).
+
+### 3. Power BI v1: original dashboard (100+ hours of design and DAX work)
 
 | Overview | Sales & Customers | Delivery & Operations |
 | --- | --- | --- |
 | ![](screenshots/D01_Overview.PNG) | ![](screenshots/D02_Sales_Customers.png) | ![](screenshots/D03_Delivery_Operations.png) |
 | **Products** | **Insights** | |
 | ![](screenshots/D04_Products.png) | ![](screenshots/D05_Insights.png) | |
-
-**Power BI v2 (PBIP):** connected live to PostgreSQL, with pages for Executive Overview, Delivery & SLA, Products & Margin, Customers & Risk and Market Detail. It has 53 measures in display folders, like-for-like YTD comparisons, a field-parameter metric switch and conditional YoY colours. See the [Power BI model guide](docs/05_power_bi_model.md).
-
-**Live web dashboard:** [open it here](https://ravindraushi14-rock.github.io/Supply-Chain-Sales-Analysis/). It needs no login or software.
 
 ## How to run
 
