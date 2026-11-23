@@ -25,13 +25,15 @@ DataCo, a global sporting-goods supplier, sold **$36.45M** across 5 markets in 2
 - **Profit:** which products, customers and discounts drive or destroy margin?
 - **Risk:** where do suspected fraud and loss-making customers sit?
 
+**Result:** resetting premium delivery promises to real transit times cuts their late rate from **80–100% to about 40%** (estimate), at **zero extra cost**.
+
 ## Headline findings
 
 | # | Finding | Evidence | Action |
 | --- | --- | --- | --- |
 | 1 | **Late delivery is a promise problem, not a warehouse problem** | First Class promises 1 day and always takes 2 (**100% late**). Second Class promises 2 and takes 4 (**80% late**). Standard Class meets its 4-day promise | Reset premium SLAs to real capability (2 and 4 days). This removes most "late" flags at zero operating cost |
 | 2 | **2017 did not shrink like-for-like** | Full-year sales −4.0%, but **Jan–Sep 2017 vs 2016 = +4.7%** (profit +8.0%). From Oct 2017 the data changes shape: 1 item per order, new customers only | Report like-for-like growth and investigate the Q4-2017 change |
-| 3 | **8 products = 80% of sales** | 118 products in total. The top 8 carry 85% of value (ABC analysis) | A-class stock policy: protect availability of the top 8 first |
+| 3 | **8 of 118 products = 85% of sales** | 118 products in total. The top 8 carry 85.5% of value (ABC analysis) | A-class stock policy: protect availability of the top 8 first |
 | 4 | **Discounts erode margin** | Margin falls from **11.8%** (0–4% discount) to **9.0%** (20–25%) | Cap deep discounts outside A-class products |
 | 5 | **Loss-making customers cost 26% of profit** | **3,660 customers** lose **$1.04M** on $7.05M sales | Review pricing and discount rules for these accounts |
 | 6 | **All suspected fraud uses bank transfer** | 1,447 orders flagged, all TRANSFER (~8% of transfer orders) | Add verification for transfers above a threshold |
